@@ -1,0 +1,66 @@
+{
+  "MediaContainer": {
+    "size": 3,
+    "Metadata": [
+      {
+        "ratingKey": "2001",
+        "key": "/library/metadata/2001",
+        "title": "Airbag",
+        "grandparentTitle": "Radiohead",
+        "parentTitle": "OK Computer",
+        "duration": 282000,
+        "thumb": "/library/metadata/1001/thumb/1609459200",
+        "Media": [
+          {
+            "Part": [
+              {
+                "key": "/library/parts/2001/1234567/file.flac",
+                "container": "flac",
+                "size": 32000000
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "ratingKey": "2002",
+        "key": "/library/metadata/2002",
+        "title": "Paranoid Android",
+        "grandparentTitle": "Radiohead",
+        "parentTitle": "OK Computer",
+        "duration": 383000,
+        "Media": [
+          {
+            "Part": [
+              {
+                "key": "/library/parts/2002/1234568/file.flac",
+                "container": "flac",
+                "size": 45000000
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "ratingKey": "2003",
+        "key": "/library/metadata/2003",
+        "title": "Subterranean Homesick Alien",
+        "grandparentTitle": "Radiohead",
+        "parentTitle": "OK Computer",
+        "duration": 265000,
+        "thumb": "/library/metadata/1001/thumb/1609459200",
+        "Media": [
+          {
+            "Part": [
+              {
+                "key": "/library/parts/2003/1234569/file.flac",
+                "container": "flac",
+                "size": 28000000
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
