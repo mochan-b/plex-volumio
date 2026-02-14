@@ -1,0 +1,94 @@
+/**
+ * Plex Service — high-level facade combining PlexApiClient, LibraryParser,
+ * and StreamResolver into a single, easy-to-use API.
+ *
+ * All methods return normalized domain types with parsed metadata.
+ * Testable with a mocked PlexApiClient.
+ */
+
+import type { PlexApiClient } from "./api-client.js";
+import type { Library, Album, Track, Playlist } from "../types/index.js";
+import { parseLibraries, parseAlbums, parseTracks, parsePlaylists } from "../core/parser.js";
+import { buildStreamUrl, buildResourceUrl } from "../core/stream-resolver.js";
+import type { PlexConnection } from "../core/stream-resolver.js";
+
+export interface PlayableTrack extends Track {
+  streamUrl: string;
+}
+
+export interface SearchResults {
+  tracks: Track[];
+  albums: Album[];
+}
+
+export class PlexService {
+  constructor(
+    private readonly apiClient: PlexApiClient,
+    private readonly connection: PlexConnection,
+  ) {}
+
+  /** Get all music libraries (filters out non-music sections). */
+  async getLibraries(): Promise<Library[]> {
+    const raw = await this.apiClient.getLibraries();
+    return parseLibraries(raw);
+  }
+
+  /** Get all albums in a library section. */
+  async getAlbums(libraryKey: string): Promise<Album[]> {
+    const raw = await this.apiClient.getAlbums(libraryKey);
+    return parseAlbums(raw);
+  }
+
+  /** Get all tracks for an album by its trackListKey. */
+  async getAlbumTracks(trackListKey: string): Promise<Track[]> {
+    const raw = await this.apiClient.getTracks(trackListKey);
+    return parseTracks(raw);
+  }
+
+  /** Get all audio playlists (filters out video playlists). */
+  async getPlaylists(): Promise<Playlist[]> {
+    const raw = await this.apiClient.getPlaylists();
+    return parsePlaylists(raw);
+  }
+
+  /** Get all tracks in a playlist by its itemsKey. */
+  async getPlaylistTracks(itemsKey: string): Promise<Track[]> {
+    const raw = await this.apiClient.getPlaylistItems(itemsKey);
+    return parseTracks(raw);
+  }
+
+  /** Search for tracks and albums matching a query. */
+  async search(query: string): Promise<SearchResults> {
+    const [rawTracks, rawAlbums] = await Promise.all([
+      this.apiClient.searchTracks(query),
+      this.apiClient.searchAlbums(query),
+    ]);
+    return {
+      tracks: parseTracks(rawTracks),
+      albums: parseAlbums(rawAlbums),
+    };
+  }
+
+  /**
+   * Fetch a single track by its ratingKey and resolve its stream URL.
+   * Returns a PlayableTrack ready for the audio player.
+   */
+  async getPlayableTrack(trackId: string): Promise<PlayableTrack> {
+    const raw = await this.apiClient.getTrackMetadata(trackId);
+    const tracks = parseTracks(raw);
+    if (tracks.length === 0) {
+      throw new Error(`Track not found: ${trackId}`);
+    }
+    const track = tracks[0]!;
+    const streamUrl = buildStreamUrl({
+      ...this.connection,
+      trackKey: track.streamKey,
+    });
+    return { ...track, streamUrl };
+  }
+
+  /** Build a full artwork URL from a relative Plex thumbnail path. */
+  getArtworkUrl(path: string): string {
+    return buildResourceUrl(this.connection, path);
+  }
+}
