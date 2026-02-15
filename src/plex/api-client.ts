@@ -9,7 +9,7 @@
  * versions (Node 14+).
  */
 
-import http from "node:http";
+import http from "http";
 import type { PlexConnection } from "../core/stream-resolver.js";
 import type {
   RawLibraryResponse,

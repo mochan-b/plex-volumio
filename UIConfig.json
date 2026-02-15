@@ -1,0 +1,48 @@
+{
+  "page": {
+    "label": "PLUGIN_NAME"
+  },
+  "sections": [
+    {
+      "id": "plex_connection",
+      "element": "section",
+      "label": "PLEX_CONNECTION",
+      "icon": "fa-server",
+      "onSave": {
+        "type": "controller",
+        "endpoint": "music_service/plex",
+        "method": "saveConfig"
+      },
+      "saveButton": {
+        "label": "SAVE",
+        "data": ["host", "port", "token"]
+      },
+      "content": [
+        {
+          "id": "host",
+          "type": "text",
+          "element": "input",
+          "doc": "PLEX_HOST_DOC",
+          "label": "PLEX_HOST",
+          "value": ""
+        },
+        {
+          "id": "port",
+          "type": "number",
+          "element": "input",
+          "doc": "PLEX_PORT_DOC",
+          "label": "PLEX_PORT",
+          "value": ""
+        },
+        {
+          "id": "token",
+          "type": "text",
+          "element": "input",
+          "doc": "PLEX_TOKEN_DOC",
+          "label": "PLEX_TOKEN",
+          "value": ""
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "host": {
+    "type": "string",
+    "value": "localhost"
+  },
+  "port": {
+    "type": "number",
+    "value": 32400
+  },
+  "token": {
+    "type": "string",
+    "value": ""
+  }
+}

@@ -6,7 +6,7 @@
  * No audio player or Volumio dependency — purely a state machine.
  */
 
-import { EventEmitter } from "node:events";
+import { EventEmitter } from "events";
 import type { Track } from "../types/index.js";
 
 export type PlaybackState = "stopped" | "playing" | "paused";
@@ -126,7 +126,7 @@ export class PlaybackController {
   on(event: "stateChanged", listener: (e: StateChangedEvent) => void): void;
   on(event: "trackEnded", listener: () => void): void;
   on(event: "error", listener: (e: PlaybackErrorEvent) => void): void;
-  on(event: string, listener: (...args: unknown[]) => void): void {
+  on(event: string, listener: (...args: any[]) => void): void {
     this.emitter.on(event, listener);
   }
 

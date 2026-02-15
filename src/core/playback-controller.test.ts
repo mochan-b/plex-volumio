@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { EventEmitter } from "node:events";
+import { EventEmitter } from "events";
 import { PlaybackController } from "./playback-controller.js";
 import type { StateChangedEvent, PlaybackErrorEvent } from "./playback-controller.js";
 import type { Track } from "../types/index.js";

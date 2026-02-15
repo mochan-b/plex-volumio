@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import http from "node:http";
-import { EventEmitter } from "node:events";
+import http from "http";
+import { EventEmitter } from "events";
 import {
   PlexApiClient,
   PlexApiError,

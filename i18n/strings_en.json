@@ -1,0 +1,11 @@
+{
+  "PLUGIN_NAME": "Plex",
+  "PLEX_CONNECTION": "Plex Server Connection",
+  "PLEX_HOST": "Host",
+  "PLEX_HOST_DOC": "Hostname or IP address of your Plex Media Server (e.g. 192.168.1.100)",
+  "PLEX_PORT": "Port",
+  "PLEX_PORT_DOC": "Port number for your Plex Media Server (default: 32400)",
+  "PLEX_TOKEN": "Token",
+  "PLEX_TOKEN_DOC": "Your Plex authentication token. See https://support.plex.tv/articles/204059436/ for instructions.",
+  "SAVE": "Save"
+}
