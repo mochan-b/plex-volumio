@@ -3,7 +3,7 @@ import { VolumioAdapter } from "./adapter.js";
 import type { KewLib } from "./adapter.js";
 import type { PlexService, PlayableTrack } from "../plex/plex-service.js";
 import type { PlexConnection } from "../core/stream-resolver.js";
-import type { Library, Album, Track, Playlist } from "../types/index.js";
+import type { Library, Artist, Album, Track, Playlist } from "../types/index.js";
 import type {
   VolumioContext,
   VolumioCoreCommand,
@@ -46,6 +46,21 @@ const connection: PlexConnection = {
 const librariesFixture: Library[] = [
   { id: "1", title: "Music", type: "artist" },
   { id: "3", title: "Podcasts", type: "artist" },
+];
+
+const artistsFixture: Artist[] = [
+  {
+    id: "500",
+    title: "Radiohead",
+    artworkUrl: "/library/metadata/500/thumb/123",
+    albumsKey: "/library/metadata/500/children",
+  },
+  {
+    id: "501",
+    title: "Pink Floyd",
+    artworkUrl: null,
+    albumsKey: "/library/metadata/501/children",
+  },
 ];
 
 const albumsFixture: Album[] = [
@@ -102,7 +117,11 @@ const playableTrackFixture: PlayableTrack = {
 function createMockPlexService(): PlexService {
   return {
     getLibraries: vi.fn<() => Promise<Library[]>>().mockResolvedValue(librariesFixture),
+    getArtists: vi.fn<(k: string) => Promise<Artist[]>>().mockResolvedValue(artistsFixture),
+    getAllArtists: vi.fn<() => Promise<Artist[]>>().mockResolvedValue(artistsFixture),
     getAlbums: vi.fn<(k: string) => Promise<Album[]>>().mockResolvedValue(albumsFixture),
+    getAllAlbums: vi.fn<() => Promise<Album[]>>().mockResolvedValue(albumsFixture),
+    getArtistAlbums: vi.fn<(k: string) => Promise<Album[]>>().mockResolvedValue(albumsFixture),
     getAlbumTracks: vi.fn<(k: string) => Promise<Track[]>>().mockResolvedValue(tracksFixture),
     getPlaylists: vi.fn<() => Promise<Playlist[]>>().mockResolvedValue(playlistsFixture),
     getPlaylistTracks: vi.fn<(k: string) => Promise<Track[]>>().mockResolvedValue(tracksFixture),
@@ -201,8 +220,8 @@ describe("VolumioAdapter", () => {
     it("clears the PlexService reference", async () => {
       await adapter.onStop();
 
-      // Attempting to browse after stop should fail
-      await expect(adapter.handleBrowseUri("plex")).rejects.toThrow(
+      // Attempting to browse after stop should fail (root is static, so use artists)
+      await expect(adapter.handleBrowseUri("plex/artists")).rejects.toThrow(
         "PlexService not initialized",
       );
     });
@@ -217,18 +236,20 @@ describe("VolumioAdapter", () => {
   // ── Browse: root ─────────────────────────────────────────────────
 
   describe("handleBrowseUri — root", () => {
-    it("returns libraries and playlists folder at root", async () => {
+    it("returns Artists, Albums, and Playlists folders at root", async () => {
       const result = (await adapter.handleBrowseUri("plex")) as NavigationPage;
 
-      expect(mockService.getLibraries).toHaveBeenCalledOnce();
       const items = result.navigation.lists[0]!.items;
-      // 2 libraries + 1 playlists folder
       expect(items).toHaveLength(3);
-      expect(items[0]!.title).toBe("Music");
-      expect(items[0]!.uri).toBe("plex/library/1");
-      expect(items[1]!.title).toBe("Podcasts");
+      expect(items[0]!.title).toBe("Artists");
+      expect(items[0]!.uri).toBe("plex/artists");
+      expect(items[0]!.icon).toBe("fa fa-microphone");
+      expect(items[1]!.title).toBe("Albums");
+      expect(items[1]!.uri).toBe("plex/albums");
+      expect(items[1]!.icon).toBe("fa fa-music");
       expect(items[2]!.title).toBe("Playlists");
       expect(items[2]!.uri).toBe("plex/playlists");
+      expect(items[2]!.icon).toBe("fa fa-list");
     });
 
     it("sets prev URI to /", async () => {
@@ -237,28 +258,72 @@ describe("VolumioAdapter", () => {
     });
   });
 
-  // ── Browse: library ──────────────────────────────────────────────
+  // ── Browse: artists ─────────────────────────────────────────────
 
-  describe("handleBrowseUri — library", () => {
-    it("returns albums for a library", async () => {
-      const result = (await adapter.handleBrowseUri("plex/library/1")) as NavigationPage;
+  describe("handleBrowseUri — artists", () => {
+    it("returns all artists", async () => {
+      const result = (await adapter.handleBrowseUri("plex/artists")) as NavigationPage;
 
-      expect(mockService.getAlbums).toHaveBeenCalledWith("1");
+      expect(mockService.getAllArtists).toHaveBeenCalledOnce();
+      const items = result.navigation.lists[0]!.items;
+      expect(items).toHaveLength(2);
+      expect(items[0]!.title).toBe("Radiohead");
+      expect(items[0]!.type).toBe("folder");
+      expect(items[0]!.albumart).toContain("/library/metadata/500/thumb/123");
+      expect(items[1]!.title).toBe("Pink Floyd");
+      expect(items[1]!.albumart).toBeUndefined();
+    });
+
+    it("artist URIs encode the albumsKey", async () => {
+      const result = (await adapter.handleBrowseUri("plex/artists")) as NavigationPage;
+      const items = result.navigation.lists[0]!.items;
+      expect(items[0]!.uri).toBe("plex/artist/__library__metadata__500__children");
+    });
+  });
+
+  // ── Browse: artist (albums by artist) ─────────────────────────
+
+  describe("handleBrowseUri — artist", () => {
+    it("returns albums for an artist", async () => {
+      const uri = "plex/artist/__library__metadata__500__children";
+      const result = (await adapter.handleBrowseUri(uri)) as NavigationPage;
+
+      expect(mockService.getArtistAlbums).toHaveBeenCalledWith(
+        "/library/metadata/500/children",
+      );
       const items = result.navigation.lists[0]!.items;
       expect(items).toHaveLength(2);
       expect(items[0]!.title).toBe("OK Computer");
       expect(items[0]!.artist).toBe("Radiohead");
       expect(items[0]!.type).toBe("folder");
-      // Album with artwork should have albumart
+    });
+
+    it("sets prev URI to plex/artists", async () => {
+      const uri = "plex/artist/__library__metadata__500__children";
+      const result = (await adapter.handleBrowseUri(uri)) as NavigationPage;
+      expect(result.navigation.prev.uri).toBe("plex/artists");
+    });
+  });
+
+  // ── Browse: albums ────────────────────────────────────────────
+
+  describe("handleBrowseUri — albums", () => {
+    it("returns all albums", async () => {
+      const result = (await adapter.handleBrowseUri("plex/albums")) as NavigationPage;
+
+      expect(mockService.getAllAlbums).toHaveBeenCalledOnce();
+      const items = result.navigation.lists[0]!.items;
+      expect(items).toHaveLength(2);
+      expect(items[0]!.title).toBe("OK Computer");
+      expect(items[0]!.artist).toBe("Radiohead");
+      expect(items[0]!.type).toBe("folder");
       expect(items[0]!.albumart).toContain("/library/metadata/1001/thumb/123");
-      // Album without artwork should not have albumart
       expect(items[1]!.albumart).toBeUndefined();
     });
 
     it("album URIs encode the trackListKey", async () => {
-      const result = (await adapter.handleBrowseUri("plex/library/1")) as NavigationPage;
+      const result = (await adapter.handleBrowseUri("plex/albums")) as NavigationPage;
       const items = result.navigation.lists[0]!.items;
-      // /library/metadata/1001/children → __library__metadata__1001__children
       expect(items[0]!.uri).toBe("plex/album/__library__metadata__1001__children");
     });
   });
@@ -335,8 +400,8 @@ describe("VolumioAdapter", () => {
     });
 
     it("propagates PlexService errors", async () => {
-      vi.mocked(mockService.getLibraries).mockRejectedValue(new Error("Network failure"));
-      await expect(adapter.handleBrowseUri("plex")).rejects.toThrow("Network failure");
+      vi.mocked(mockService.getAllArtists).mockRejectedValue(new Error("Network failure"));
+      await expect(adapter.handleBrowseUri("plex/artists")).rejects.toThrow("Network failure");
     });
   });
 

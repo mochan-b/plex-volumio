@@ -8,10 +8,12 @@
 
 import type {
   Library,
+  Artist,
   Album,
   Track,
   Playlist,
   RawLibraryResponse,
+  RawArtistResponse,
   RawAlbumResponse,
   RawTrackResponse,
   RawPlaylistResponse,
@@ -54,6 +56,19 @@ export function parsePlaylists(raw: RawPlaylistResponse): Playlist[] {
       trackCount: item.leafCount,
       itemsKey: item.key, // e.g. "/playlists/12345/items"
     }));
+}
+
+/**
+ * Parse the /library/sections/{key}/all?type=8 response into Artist objects.
+ */
+export function parseArtists(raw: RawArtistResponse): Artist[] {
+  const metadata = raw.MediaContainer.Metadata ?? [];
+  return metadata.map((item) => ({
+    id: item.ratingKey,
+    title: item.title,
+    artworkUrl: item.thumb ?? null,
+    albumsKey: item.key, // e.g. "/library/metadata/123/children"
+  }));
 }
 
 /**

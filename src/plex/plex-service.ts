@@ -7,8 +7,8 @@
  */
 
 import type { PlexApiClient } from "./api-client.js";
-import type { Library, Album, Track, Playlist } from "../types/index.js";
-import { parseLibraries, parseAlbums, parseTracks, parsePlaylists } from "../core/parser.js";
+import type { Library, Artist, Album, Track, Playlist } from "../types/index.js";
+import { parseLibraries, parseArtists, parseAlbums, parseTracks, parsePlaylists } from "../core/parser.js";
 import { buildStreamUrl, buildResourceUrl } from "../core/stream-resolver.js";
 import type { PlexConnection } from "../core/stream-resolver.js";
 
@@ -33,9 +33,39 @@ export class PlexService {
     return parseLibraries(raw);
   }
 
+  /** Get all artists in a library section. */
+  async getArtists(libraryKey: string): Promise<Artist[]> {
+    const raw = await this.apiClient.getArtists(libraryKey);
+    return parseArtists(raw);
+  }
+
+  /** Get all artists across all music libraries. */
+  async getAllArtists(): Promise<Artist[]> {
+    const libraries = await this.getLibraries();
+    const results = await Promise.all(
+      libraries.map((lib) => this.getArtists(lib.id)),
+    );
+    return results.flat();
+  }
+
   /** Get all albums in a library section. */
   async getAlbums(libraryKey: string): Promise<Album[]> {
     const raw = await this.apiClient.getAlbums(libraryKey);
+    return parseAlbums(raw);
+  }
+
+  /** Get all albums across all music libraries. */
+  async getAllAlbums(): Promise<Album[]> {
+    const libraries = await this.getLibraries();
+    const results = await Promise.all(
+      libraries.map((lib) => this.getAlbums(lib.id)),
+    );
+    return results.flat();
+  }
+
+  /** Get albums for a specific artist by their albumsKey. */
+  async getArtistAlbums(albumsKey: string): Promise<Album[]> {
+    const raw = await this.apiClient.getArtistAlbums(albumsKey);
     return parseAlbums(raw);
   }
 

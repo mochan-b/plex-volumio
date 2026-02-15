@@ -13,6 +13,7 @@ import http from "http";
 import type { PlexConnection } from "../core/stream-resolver.js";
 import type {
   RawLibraryResponse,
+  RawArtistResponse,
   RawAlbumResponse,
   RawTrackResponse,
   RawPlaylistResponse,
@@ -75,6 +76,13 @@ export class PlexApiClient {
     return this.request<RawLibraryResponse>("/library/sections");
   }
 
+  /** Fetch artists for a library section (type=8 requests artist-level items). */
+  async getArtists(libraryKey: string): Promise<RawArtistResponse> {
+    return this.request<RawArtistResponse>(
+      `/library/sections/${encodeURIComponent(libraryKey)}/all?type=8`,
+    );
+  }
+
   /** Fetch albums for a library section (type=9 requests album-level items). */
   async getAlbums(libraryKey: string): Promise<RawAlbumResponse> {
     return this.request<RawAlbumResponse>(
@@ -85,6 +93,11 @@ export class PlexApiClient {
   /** Fetch tracks for an album. `albumKey` is the full path from Album.trackListKey. */
   async getTracks(albumKey: string): Promise<RawTrackResponse> {
     return this.request<RawTrackResponse>(albumKey);
+  }
+
+  /** Fetch albums for an artist. `artistKey` is the full path from Artist.albumsKey. */
+  async getArtistAlbums(artistKey: string): Promise<RawAlbumResponse> {
+    return this.request<RawAlbumResponse>(artistKey);
   }
 
   /** Fetch all playlists on the server. */

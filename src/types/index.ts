@@ -12,6 +12,17 @@ export interface Library {
   type: string;
 }
 
+/** A music artist from a Plex library. */
+export interface Artist {
+  /** Plex ratingKey — unique identifier for the artist */
+  id: string;
+  title: string;
+  /** Relative path to artist art thumbnail, null if missing */
+  artworkUrl: string | null;
+  /** Plex key to fetch the list of albums for this artist (e.g. "/library/metadata/123/children") */
+  albumsKey: string;
+}
+
 /** A music album from a Plex library. */
 export interface Album {
   /** Plex ratingKey — unique identifier for the album */
@@ -79,6 +90,26 @@ export interface RawPlaylistMetadata {
   playlistType: string;
   /** Number of items in the playlist */
   leafCount: number;
+  [key: string]: unknown;
+}
+
+/** Response from GET /library/sections/{key}/all?type=8 — lists artists. */
+export interface RawArtistResponse {
+  MediaContainer: {
+    size: number;
+    Metadata: RawArtistMetadata[];
+  };
+}
+
+/** A single artist entry from the Plex artist listing. */
+export interface RawArtistMetadata {
+  /** Unique identifier for this artist */
+  ratingKey: string;
+  /** API path to fetch the artist's children (albums) */
+  key: string;
+  title: string;
+  /** Relative thumbnail path, absent when artist has no artwork */
+  thumb?: string;
   [key: string]: unknown;
 }
 

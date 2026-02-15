@@ -113,11 +113,13 @@ export class VolumioAdapter {
 
   /**
    * Handle browse navigation. URI scheme:
-   * - plex                        → root (Libraries + Playlists)
-   * - plex/library/{libraryKey}   → albums in library
-   * - plex/album/{trackListKey}   → tracks in album
-   * - plex/playlists              → list playlists
-   * - plex/playlist/{itemsKey}    → tracks in playlist
+   * - plex                          → root (Artists, Albums, Playlists)
+   * - plex/artists                  → all artists
+   * - plex/artist/{albumsKey}       → albums by artist
+   * - plex/albums                   → all albums
+   * - plex/album/{trackListKey}     → tracks in album
+   * - plex/playlists                → list playlists
+   * - plex/playlist/{itemsKey}      → tracks in playlist
    */
   handleBrowseUri(uri: string): unknown {
     this.logger.info(`[Plex] handleBrowseUri: ${uri}`);
@@ -130,7 +132,17 @@ export class VolumioAdapter {
 
     // plex
     if (uri === "plex") {
-      return this.browseRoot(service);
+      return this.browseRoot();
+    }
+
+    // plex/artists
+    if (uri === "plex/artists") {
+      return this.browseArtists(service);
+    }
+
+    // plex/albums
+    if (uri === "plex/albums") {
+      return this.browseAlbums(service);
     }
 
     // plex/playlists
@@ -138,9 +150,10 @@ export class VolumioAdapter {
       return this.browsePlaylists(service);
     }
 
-    // plex/library/{libraryKey}
-    if (parts[1] === "library" && parts[2]) {
-      return this.browseLibrary(service, parts[2]);
+    // plex/artist/{albumsKey...}  (key may contain slashes, encoded as __)
+    if (parts[1] === "artist" && parts[2]) {
+      const albumsKey = decodePathSegment(parts.slice(2).join("/"));
+      return this.browseArtist(service, albumsKey);
     }
 
     // plex/album/{trackListKey...}  (key may contain slashes, encoded as __)
@@ -158,24 +171,30 @@ export class VolumioAdapter {
     throw new Error(`Unknown browse URI: ${uri}`);
   }
 
-  private async browseRoot(service: PlexService): Promise<NavigationPage> {
-    const libraries = await service.getLibraries();
-
-    const libraryItems: NavigationListItem[] = libraries.map((lib) => ({
-      service: SERVICE_NAME,
-      type: "folder",
-      title: lib.title,
-      uri: `plex/library/${lib.id}`,
-      icon: "fa fa-music",
-    }));
-
-    const playlistItem: NavigationListItem = {
-      service: SERVICE_NAME,
-      type: "folder",
-      title: "Playlists",
-      uri: "plex/playlists",
-      icon: "fa fa-list",
-    };
+  private browseRoot(): NavigationPage {
+    const items: NavigationListItem[] = [
+      {
+        service: SERVICE_NAME,
+        type: "folder",
+        title: "Artists",
+        uri: "plex/artists",
+        icon: "fa fa-microphone",
+      },
+      {
+        service: SERVICE_NAME,
+        type: "folder",
+        title: "Albums",
+        uri: "plex/albums",
+        icon: "fa fa-music",
+      },
+      {
+        service: SERVICE_NAME,
+        type: "folder",
+        title: "Playlists",
+        uri: "plex/playlists",
+        icon: "fa fa-list",
+      },
+    ];
 
     return {
       navigation: {
@@ -185,15 +204,67 @@ export class VolumioAdapter {
             title: "Plex Music",
             icon: "fa fa-server",
             availableListViews: ["list", "grid"],
-            items: [...libraryItems, playlistItem],
+            items,
           },
         ],
       },
     };
   }
 
-  private async browseLibrary(service: PlexService, libraryKey: string): Promise<NavigationPage> {
-    const albums = await service.getAlbums(libraryKey);
+  private async browseArtists(service: PlexService): Promise<NavigationPage> {
+    const artists = await service.getAllArtists();
+
+    const items: NavigationListItem[] = artists.map((artist) => ({
+      service: SERVICE_NAME,
+      type: "folder",
+      title: artist.title,
+      albumart: artist.artworkUrl ? service.getArtworkUrl(artist.artworkUrl) : undefined,
+      uri: `plex/artist/${encodePathSegment(artist.albumsKey)}`,
+    }));
+
+    return {
+      navigation: {
+        prev: { uri: "plex" },
+        lists: [
+          {
+            title: "Artists",
+            icon: "fa fa-microphone",
+            availableListViews: ["list", "grid"],
+            items,
+          },
+        ],
+      },
+    };
+  }
+
+  private async browseArtist(service: PlexService, albumsKey: string): Promise<NavigationPage> {
+    const albums = await service.getArtistAlbums(albumsKey);
+
+    const items: NavigationListItem[] = albums.map((album) => ({
+      service: SERVICE_NAME,
+      type: "folder",
+      title: album.title,
+      artist: album.artist,
+      albumart: album.artworkUrl ? service.getArtworkUrl(album.artworkUrl) : undefined,
+      uri: `plex/album/${encodePathSegment(album.trackListKey)}`,
+    }));
+
+    return {
+      navigation: {
+        prev: { uri: "plex/artists" },
+        lists: [
+          {
+            title: albums[0]?.artist ?? "Artist",
+            availableListViews: ["list", "grid"],
+            items,
+          },
+        ],
+      },
+    };
+  }
+
+  private async browseAlbums(service: PlexService): Promise<NavigationPage> {
+    const albums = await service.getAllAlbums();
 
     const items: NavigationListItem[] = albums.map((album) => ({
       service: SERVICE_NAME,
