@@ -54,7 +54,7 @@ export class VolumioAdapter {
     uri: "plex",
     plugin_type: "music_service",
     plugin_name: SERVICE_NAME,
-    albumart: "/albumart?sourceicon=music_service/plex/plex.svg",
+    albumart: "/albumart?sourceicon=music_service/plex/plex.png",
   };
 
   constructor(context: VolumioContext, libQ: KewLib) {

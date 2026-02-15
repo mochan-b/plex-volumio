@@ -38,7 +38,7 @@ npm test
 
 ```bash
 scp -r index.js config.json UIConfig.json i18n/ install.sh uninstall.sh \
-  package.json dist/ \
+  package.json plex.png dist/ \
   volumio@<VOLUMIO_IP>:/tmp/plex-plugin/
 ```
 
@@ -65,7 +65,7 @@ volumio plugin install
 
 ```bash
 scp -r index.js config.json UIConfig.json i18n/ install.sh uninstall.sh \
-  package.json dist/ \
+  package.json plex.png dist/ \
   volumio@<VOLUMIO_IP>:/data/plugins/music_service/plex/
 ```
 
