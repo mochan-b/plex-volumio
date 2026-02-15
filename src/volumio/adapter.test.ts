@@ -136,6 +136,10 @@ function createMockPlexService(): PlexService {
 function createMockMpdPlugin(): MpdPlugin {
   return {
     sendMpdCommand: vi.fn().mockResolvedValue(undefined),
+    stop: vi.fn().mockResolvedValue(undefined),
+    pause: vi.fn().mockResolvedValue(undefined),
+    resume: vi.fn().mockResolvedValue(undefined),
+    seek: vi.fn().mockResolvedValue(undefined),
     clientMpd: {
       sendCommand: vi.fn(),
     },
@@ -534,24 +538,28 @@ describe("VolumioAdapter", () => {
   // ── Playback controls ────────────────────────────────────────────
 
   describe("playback controls", () => {
-    it("stop sends mpd stop command", async () => {
+    it("stop sets consume update service and delegates to mpd plugin", async () => {
       await adapter.stop();
-      expect(vi.mocked(mpdPlugin.sendMpdCommand)).toHaveBeenCalledWith("stop", []);
+      expect(commandRouter.stateMachine.setConsumeUpdateService).toHaveBeenCalledWith("mpd", true, false);
+      expect(vi.mocked(mpdPlugin.stop)).toHaveBeenCalled();
     });
 
-    it("pause sends mpd pause command", async () => {
+    it("pause sets consume update service and delegates to mpd plugin", async () => {
       await adapter.pause();
-      expect(vi.mocked(mpdPlugin.sendMpdCommand)).toHaveBeenCalledWith("pause", []);
+      expect(commandRouter.stateMachine.setConsumeUpdateService).toHaveBeenCalledWith("mpd", true, false);
+      expect(vi.mocked(mpdPlugin.pause)).toHaveBeenCalled();
     });
 
-    it("resume sends mpd play command", async () => {
+    it("resume sets consume update service and delegates to mpd plugin", async () => {
       await adapter.resume();
-      expect(vi.mocked(mpdPlugin.sendMpdCommand)).toHaveBeenCalledWith("play", []);
+      expect(commandRouter.stateMachine.setConsumeUpdateService).toHaveBeenCalledWith("mpd", true, false);
+      expect(vi.mocked(mpdPlugin.resume)).toHaveBeenCalled();
     });
 
-    it("seek converts ms to seconds and sends mpd seek command", async () => {
+    it("seek sets consume update service and delegates to mpd plugin", async () => {
       await adapter.seek(45000);
-      expect(vi.mocked(mpdPlugin.sendMpdCommand)).toHaveBeenCalledWith("seek", ["0", "45"]);
+      expect(commandRouter.stateMachine.setConsumeUpdateService).toHaveBeenCalledWith("mpd", true, false);
+      expect(vi.mocked(mpdPlugin.seek)).toHaveBeenCalledWith(45000);
     });
   });
 

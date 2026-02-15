@@ -29,13 +29,14 @@ export interface VolumioCoreCommand {
   servicePushState(state: VolumioState, serviceName: string): void;
   volumioAddToBrowseSources(source: BrowseSource): void;
   volumioRemoveToBrowseSources(source: BrowseSource): void;
+
   stateMachine: VolumioStateMachine;
   pluginManager: VolumioPluginManager;
 }
 
 /** Volumio's state machine — manages playback queue and state. */
 export interface VolumioStateMachine {
-  setConsumeUpdateService(service: string, state?: boolean, remove?: boolean): void;
+  setConsumeUpdateService(service: string | undefined, state?: boolean, remove?: boolean): void;
 }
 
 /** Volumio plugin manager — used to get references to other plugins. */
@@ -46,6 +47,10 @@ export interface VolumioPluginManager {
 /** Subset of the MPD plugin interface used for playback. */
 export interface MpdPlugin {
   sendMpdCommand(command: string, params: string[]): PromiseLike<unknown>;
+  stop(): PromiseLike<unknown>;
+  pause(): PromiseLike<unknown>;
+  resume(): PromiseLike<unknown>;
+  seek(position: number): PromiseLike<unknown>;
   clientMpd: {
     sendCommand(command: unknown, callback: (err: unknown, msg: string) => void): void;
   };

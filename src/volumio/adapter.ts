@@ -465,30 +465,29 @@ export class VolumioAdapter {
   /** Stop playback. */
   stop(): unknown {
     this.logger.info("[Plex] stop");
-    const mpdPlugin = this.getMpdPlugin();
-    return mpdPlugin.sendMpdCommand("stop", []);
+    this.commandRouter.stateMachine.setConsumeUpdateService("mpd", true, false);
+    return this.getMpdPlugin().stop();
   }
 
   /** Pause playback. */
   pause(): unknown {
     this.logger.info("[Plex] pause");
-    const mpdPlugin = this.getMpdPlugin();
-    return mpdPlugin.sendMpdCommand("pause", []);
+    this.commandRouter.stateMachine.setConsumeUpdateService("mpd", true, false);
+    return this.getMpdPlugin().pause();
   }
 
   /** Resume playback. */
   resume(): unknown {
     this.logger.info("[Plex] resume");
-    const mpdPlugin = this.getMpdPlugin();
-    return mpdPlugin.sendMpdCommand("play", []);
+    this.commandRouter.stateMachine.setConsumeUpdateService("mpd", true, false);
+    return this.getMpdPlugin().resume();
   }
 
   /** Seek to a position in milliseconds. */
   seek(position: number): unknown {
     this.logger.info(`[Plex] seek: ${position}ms`);
-    const mpdPlugin = this.getMpdPlugin();
-    const seconds = Math.round(position / 1000);
-    return mpdPlugin.sendMpdCommand("seek", ["0", String(seconds)]);
+    this.commandRouter.stateMachine.setConsumeUpdateService("mpd", true, false);
+    return this.getMpdPlugin().seek(position);
   }
 
   // ── Search ─────────────────────────────────────────────────────────
