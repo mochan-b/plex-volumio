@@ -299,7 +299,7 @@ export class VolumioAdapter {
 
     return {
       navigation: {
-        prev: { uri: "plex" },
+        prev: { uri: "plex/albums" },
         lists: [
           {
             title: tracks[0]?.album ?? "Album",
