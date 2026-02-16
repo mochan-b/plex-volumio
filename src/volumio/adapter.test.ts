@@ -424,7 +424,8 @@ describe("VolumioAdapter", () => {
       expect(result[0]!.name).toBe("Airbag");
       expect(result[0]!.artist).toBe("Radiohead");
       expect(result[0]!.album).toBe("OK Computer");
-      expect(result[0]!.uri).toContain("/library/parts/2001/file.flac");
+      expect(result[0]!.uri).toBe("plex/stream/__library__parts__2001__file.flac");
+      expect(result[0]!.uri).not.toContain("Token");
       expect(result[0]!.service).toBe("plex");
       expect(result[0]!.type).toBe("track");
       expect(result[0]!.duration).toBe(282);
@@ -444,9 +445,10 @@ describe("VolumioAdapter", () => {
       expect(mockService.getPlayableTrack).not.toHaveBeenCalled();
       expect(result).toHaveLength(2);
       expect(result[0]!.name).toBe("Airbag");
-      expect(result[0]!.uri).toContain("/library/parts/2001/file.flac");
+      expect(result[0]!.uri).toBe("plex/stream/__library__parts__2001__file.flac");
+      expect(result[0]!.uri).not.toContain("Token");
       expect(result[1]!.name).toBe("Paranoid Android");
-      expect(result[1]!.uri).toContain("/library/parts/2002/file.flac");
+      expect(result[1]!.uri).toBe("plex/stream/__library__parts__2002__file.flac");
     });
   });
 
@@ -462,7 +464,7 @@ describe("VolumioAdapter", () => {
 
   describe("clearAddPlayTrack", () => {
     const queueItem: QueueItem = {
-      uri: "http://192.168.1.100:32400/library/parts/2001/file.flac?X-Plex-Token=test-token",
+      uri: "plex/stream/__library__parts__2001__file.flac",
       service: "plex",
       name: "Airbag",
       artist: "Radiohead",
@@ -471,6 +473,9 @@ describe("VolumioAdapter", () => {
       duration: 282,
       type: "track",
     };
+
+    // The resolved stream URL that getStreamUrl returns for the encoded key
+    const resolvedUrl = "http://192.168.1.100:32400/library/parts/2001/file.flac?X-Plex-Token=test-token";
 
     it("sends stop, clear, then tries load before falling back to addid", async () => {
       // load fails, so addid is used as fallback
@@ -485,8 +490,8 @@ describe("VolumioAdapter", () => {
       const mpdSend = vi.mocked(mpdPlugin.sendMpdCommand);
       expect(mpdSend).toHaveBeenCalledWith("stop", []);
       expect(mpdSend).toHaveBeenCalledWith("clear", []);
-      expect(mpdSend).toHaveBeenCalledWith(`load "${queueItem.uri}"`, []);
-      expect(mpdSend).toHaveBeenCalledWith(`addid "${queueItem.uri}"`, []);
+      expect(mpdSend).toHaveBeenCalledWith(`load "${resolvedUrl}"`, []);
+      expect(mpdSend).toHaveBeenCalledWith(`addid "${resolvedUrl}"`, []);
       expect(mpdSend).toHaveBeenCalledWith("play", []);
     });
 
@@ -494,8 +499,8 @@ describe("VolumioAdapter", () => {
       await adapter.clearAddPlayTrack(queueItem);
 
       const mpdSend = vi.mocked(mpdPlugin.sendMpdCommand);
-      expect(mpdSend).toHaveBeenCalledWith(`load "${queueItem.uri}"`, []);
-      expect(mpdSend).not.toHaveBeenCalledWith(`addid "${queueItem.uri}"`, []);
+      expect(mpdSend).toHaveBeenCalledWith(`load "${resolvedUrl}"`, []);
+      expect(mpdSend).not.toHaveBeenCalledWith(`addid "${resolvedUrl}"`, []);
     });
 
     it("sets metadata tags via addtagid when addid returns a song ID", async () => {

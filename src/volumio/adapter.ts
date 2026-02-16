@@ -50,6 +50,8 @@ export class VolumioAdapter {
   private plexService: PlexService | null = null;
   private connection: PlexConnection | null = null;
 
+  private originalServicePushState: VolumioCoreCommand["servicePushState"] | null = null;
+
   private readonly browseSource: BrowseSource = {
     name: "Plex",
     uri: "plex",
@@ -85,6 +87,7 @@ export class VolumioAdapter {
   onStart(): unknown {
     this.logger.info("[Plex] onStart");
     this.commandRouter.volumioAddToBrowseSources(this.browseSource);
+    this.installStateMaskHook();
     return this.libQ.resolve();
   }
 
@@ -92,6 +95,7 @@ export class VolumioAdapter {
   onStop(): unknown {
     this.logger.info("[Plex] onStop");
     this.commandRouter.volumioRemoveToBrowseSources(this.browseSource);
+    this.removeStateMaskHook();
     this.plexService = null;
     this.connection = null;
     return this.libQ.resolve();
@@ -386,33 +390,29 @@ export class VolumioAdapter {
     // plex/track/{trackId}
     if (parts[1] === "track" && parts[2]) {
       const playable = await service.getPlayableTrack(parts[2]);
-      return [this.trackToQueueItem(service, playable, playable.streamUrl)];
+      return [this.trackToQueueItem(service, playable)];
     }
 
     // plex/album/{trackListKey...}
     if (parts[1] === "album" && parts[2]) {
       const trackListKey = decodePathSegment(parts.slice(2).join("/"));
       const tracks = await service.getAlbumTracks(trackListKey);
-      return tracks.map((track) =>
-        this.trackToQueueItem(service, track, service.getStreamUrl(track.streamKey)),
-      );
+      return tracks.map((track) => this.trackToQueueItem(service, track));
     }
 
     // plex/playlist/{itemsKey...}
     if (parts[1] === "playlist" && parts[2]) {
       const itemsKey = decodePathSegment(parts.slice(2).join("/"));
       const tracks = await service.getPlaylistTracks(itemsKey);
-      return tracks.map((track) =>
-        this.trackToQueueItem(service, track, service.getStreamUrl(track.streamKey)),
-      );
+      return tracks.map((track) => this.trackToQueueItem(service, track));
     }
 
     throw new Error(`Cannot explode URI: ${uri}`);
   }
 
-  private trackToQueueItem(service: PlexService, track: Track, streamUrl: string): QueueItem {
+  private trackToQueueItem(service: PlexService, track: Track): QueueItem {
     return {
-      uri: streamUrl,
+      uri: `plex/stream/${encodePathSegment(track.streamKey)}`,
       service: SERVICE_NAME,
       name: track.title,
       artist: track.artist,
@@ -433,6 +433,7 @@ export class VolumioAdapter {
 
   private async _clearAddPlayTrack(track: QueueItem): Promise<void> {
     const mpdPlugin = this.getMpdPlugin();
+    const streamUrl = this.resolveStreamUrl(track.uri);
 
     // Clear MPD queue
     await mpdPlugin.sendMpdCommand("stop", []);
@@ -441,9 +442,9 @@ export class VolumioAdapter {
     // Try load first (handles playlists/streams), fall back to addid
     let songId: string | undefined;
     try {
-      await mpdPlugin.sendMpdCommand(`load "${track.uri}"`, []);
+      await mpdPlugin.sendMpdCommand(`load "${streamUrl}"`, []);
     } catch {
-      const resp = (await mpdPlugin.sendMpdCommand(`addid "${track.uri}"`, [])) as {
+      const resp = (await mpdPlugin.sendMpdCommand(`addid "${streamUrl}"`, [])) as {
         Id?: string;
       };
       songId = resp?.Id;
@@ -471,6 +472,17 @@ export class VolumioAdapter {
       { command: "addtagid", parameters: [songId, "artist", track.artist] },
     ];
     await mpdPlugin.sendMpdCommandArray(commands);
+  }
+
+  /** Resolve a queue item URI to the actual stream URL for MPD.
+   *  Accepts both plex/stream/{key} URIs and raw stream URLs for backwards compat. */
+  private resolveStreamUrl(uri: string): string {
+    const prefix = "plex/stream/";
+    if (uri.startsWith(prefix)) {
+      const streamKey = decodePathSegment(uri.slice(prefix.length));
+      return this.requireService().getStreamUrl(streamKey);
+    }
+    return uri;
   }
 
   /** Stop playback. */
@@ -590,6 +602,31 @@ export class VolumioAdapter {
       throw new Error("MPD plugin not found");
     }
     return plugin;
+  }
+
+  /**
+   * Wrap commandRouter.servicePushState so that any state containing a
+   * Plex token in its URI is sanitised before it reaches the state machine
+   * (and its logging).  MPD reports back the real stream URL it was given,
+   * so this is the only place we can intercept it.
+   */
+  private installStateMaskHook(): void {
+    if (this.originalServicePushState) return; // already installed
+    const original = this.commandRouter.servicePushState.bind(this.commandRouter);
+    this.originalServicePushState = original;
+    this.commandRouter.servicePushState = (state: VolumioState, serviceName: string) => {
+      if (state.uri && state.uri.includes("X-Plex-Token")) {
+        state = { ...state, uri: state.uri.replace(/X-Plex-Token=[^&]+/, "X-Plex-Token=████████") };
+      }
+      return original(state, serviceName);
+    };
+  }
+
+  private removeStateMaskHook(): void {
+    if (this.originalServicePushState) {
+      this.commandRouter.servicePushState = this.originalServicePushState;
+      this.originalServicePushState = null;
+    }
   }
 }
 

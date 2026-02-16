@@ -131,7 +131,7 @@ async function selectTrackFromPlaylists() {
 function playWithFfplay(url, track) {
     console.log(`\nPlaying: ${track.artist} — ${track.title}`);
     console.log(`Album:   ${track.album}`);
-    console.log(`URL:     ${url}`);
+    console.log(`URL:     ${url.replace(/X-Plex-Token=[^&]+/, "X-Plex-Token=████████")}`);
     console.log("\nPress q in the player window to stop.\n");
     const child = (0, node_child_process_1.spawn)("ffplay", ["-nodisp", "-autoexit", url], {
         stdio: "inherit",

@@ -74,7 +74,13 @@ ControllerPlex.prototype.getUIConfig = function () {
 };
 
 ControllerPlex.prototype.saveConfig = function (data) {
-  this.logger.info('[Plex] saveConfig data: ' + JSON.stringify(data));
+  var safeData = Object.assign({}, data);
+  if (safeData.token) {
+    safeData.token = typeof safeData.token === 'object'
+      ? Object.assign({}, safeData.token, { value: '████████' })
+      : '████████';
+  }
+  this.logger.info('[Plex] saveConfig data: ' + JSON.stringify(safeData));
 
   var host = (data.host && data.host.value !== undefined) ? data.host.value : data.host;
   var port = (data.port && data.port.value !== undefined) ? data.port.value : data.port;

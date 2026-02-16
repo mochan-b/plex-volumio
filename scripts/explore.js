@@ -105,7 +105,7 @@ async function main() {
     try {
         const playable = await service.getPlayableTrack(firstTrack.id);
         ok(`Resolved stream URL for "${playable.title}"`);
-        console.log(`     Stream URL: ${playable.streamUrl}`);
+        console.log(`     Stream URL: ${playable.streamUrl.replace(/X-Plex-Token=[^&]+/, "X-Plex-Token=████████")}`);
         console.log(`     Stream key: ${playable.streamKey}`);
         console.log(`     Duration:   ${formatDuration(playable.duration)}`);
     }
