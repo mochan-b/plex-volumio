@@ -11,6 +11,7 @@ import type {
   VolumioCoreCommand,
   VolumioLogger,
   MpdPlugin,
+  MpdCommandEntry,
   NavigationPage,
   NavigationListItem,
   QueueItem,
@@ -439,27 +440,43 @@ export class VolumioAdapter {
   private async _clearAddPlayTrack(track: QueueItem): Promise<void> {
     const mpdPlugin = this.getMpdPlugin();
 
-    // Set consume mode so Volumio's MPD handles audio
-    this.commandRouter.stateMachine.setConsumeUpdateService("mpd", true, false);
-
-    // Clear MPD queue, add track, and play
+    // Clear MPD queue
     await mpdPlugin.sendMpdCommand("stop", []);
     await mpdPlugin.sendMpdCommand("clear", []);
-    await mpdPlugin.sendMpdCommand("addid", [track.uri]);
-    await mpdPlugin.sendMpdCommand("play", []);
 
-    // Push initial state
-    this.pushState({
-      status: "play",
-      service: SERVICE_NAME,
-      title: track.name,
-      artist: track.artist,
-      album: track.album,
-      albumart: track.albumart,
-      uri: track.uri,
-      seek: 0,
-      duration: track.duration,
-    });
+    // Try load first (handles playlists/streams), fall back to addid
+    let songId: string | undefined;
+    try {
+      await mpdPlugin.sendMpdCommand(`load "${track.uri}"`, []);
+    } catch {
+      const resp = (await mpdPlugin.sendMpdCommand(`addid "${track.uri}"`, [])) as {
+        Id?: string;
+      };
+      songId = resp?.Id;
+    }
+
+    // Set metadata tags so MPD state pushes carry correct info
+    if (songId !== undefined) {
+      await this.mpdAddTags(mpdPlugin, songId, track);
+    }
+
+    // Set consume mode and play
+    this.commandRouter.stateMachine.setConsumeUpdateService("mpd", true, false);
+    await mpdPlugin.sendMpdCommand("play", []);
+  }
+
+  /** Set title/artist/album tags on an MPD queue entry by song ID. */
+  private async mpdAddTags(
+    mpdPlugin: MpdPlugin,
+    songId: string,
+    track: QueueItem,
+  ): Promise<void> {
+    const commands: MpdCommandEntry[] = [
+      { command: "addtagid", parameters: [songId, "title", track.name] },
+      { command: "addtagid", parameters: [songId, "album", track.album] },
+      { command: "addtagid", parameters: [songId, "artist", track.artist] },
+    ];
+    await mpdPlugin.sendMpdCommandArray(commands);
   }
 
   /** Stop playback. */

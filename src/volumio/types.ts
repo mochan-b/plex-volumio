@@ -44,9 +44,16 @@ export interface VolumioPluginManager {
   getPlugin(category: string, name: string): MpdPlugin | undefined;
 }
 
+/** MPD command descriptor for batch operations via sendMpdCommandArray. */
+export interface MpdCommandEntry {
+  command: string;
+  parameters: string[];
+}
+
 /** Subset of the MPD plugin interface used for playback. */
 export interface MpdPlugin {
   sendMpdCommand(command: string, params: string[]): PromiseLike<unknown>;
+  sendMpdCommandArray(commands: MpdCommandEntry[]): PromiseLike<unknown>;
   stop(): PromiseLike<unknown>;
   pause(): PromiseLike<unknown>;
   resume(): PromiseLike<unknown>;

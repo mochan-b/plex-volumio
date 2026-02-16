@@ -136,6 +136,7 @@ function createMockPlexService(): PlexService {
 function createMockMpdPlugin(): MpdPlugin {
   return {
     sendMpdCommand: vi.fn().mockResolvedValue(undefined),
+    sendMpdCommandArray: vi.fn().mockResolvedValue(undefined),
     stop: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn().mockResolvedValue(undefined),
     resume: vi.fn().mockResolvedValue(undefined),
@@ -464,73 +465,72 @@ describe("VolumioAdapter", () => {
   // ── clearAddPlayTrack ────────────────────────────────────────────
 
   describe("clearAddPlayTrack", () => {
-    it("sends MPD commands to clear, add, and play", async () => {
-      const queueItem: QueueItem = {
-        uri: "http://192.168.1.100:32400/library/parts/2001/file.flac?X-Plex-Token=test-token",
-        service: "plex",
-        name: "Airbag",
-        artist: "Radiohead",
-        album: "OK Computer",
-        albumart: "",
-        duration: 282,
-        type: "track",
-      };
+    const queueItem: QueueItem = {
+      uri: "http://192.168.1.100:32400/library/parts/2001/file.flac?X-Plex-Token=test-token",
+      service: "plex",
+      name: "Airbag",
+      artist: "Radiohead",
+      album: "OK Computer",
+      albumart: "",
+      duration: 282,
+      type: "track",
+    };
+
+    it("sends stop, clear, then tries load before falling back to addid", async () => {
+      // load fails, so addid is used as fallback
+      vi.mocked(mpdPlugin.sendMpdCommand).mockImplementation((cmd: string) => {
+        if (cmd.startsWith("load ")) return Promise.reject(new Error("not supported"));
+        if (cmd.startsWith("addid ")) return Promise.resolve({ Id: "42" });
+        return Promise.resolve(undefined);
+      });
 
       await adapter.clearAddPlayTrack(queueItem);
 
       const mpdSend = vi.mocked(mpdPlugin.sendMpdCommand);
       expect(mpdSend).toHaveBeenCalledWith("stop", []);
       expect(mpdSend).toHaveBeenCalledWith("clear", []);
-      expect(mpdSend).toHaveBeenCalledWith("addid", [queueItem.uri]);
+      expect(mpdSend).toHaveBeenCalledWith(`load "${queueItem.uri}"`, []);
+      expect(mpdSend).toHaveBeenCalledWith(`addid "${queueItem.uri}"`, []);
       expect(mpdSend).toHaveBeenCalledWith("play", []);
     });
 
-    it("sets consume update service on state machine", async () => {
-      const queueItem: QueueItem = {
-        uri: "http://example.com/track.flac",
-        service: "plex",
-        name: "Test",
-        artist: "Test",
-        album: "Test",
-        albumart: "",
-        duration: 100,
-        type: "track",
-      };
+    it("skips addid when load succeeds", async () => {
+      await adapter.clearAddPlayTrack(queueItem);
 
+      const mpdSend = vi.mocked(mpdPlugin.sendMpdCommand);
+      expect(mpdSend).toHaveBeenCalledWith(`load "${queueItem.uri}"`, []);
+      expect(mpdSend).not.toHaveBeenCalledWith(`addid "${queueItem.uri}"`, []);
+    });
+
+    it("sets metadata tags via addtagid when addid returns a song ID", async () => {
+      vi.mocked(mpdPlugin.sendMpdCommand).mockImplementation((cmd: string) => {
+        if (cmd.startsWith("load ")) return Promise.reject(new Error("not supported"));
+        if (cmd.startsWith("addid ")) return Promise.resolve({ Id: "42" });
+        return Promise.resolve(undefined);
+      });
+
+      await adapter.clearAddPlayTrack(queueItem);
+
+      expect(vi.mocked(mpdPlugin.sendMpdCommandArray)).toHaveBeenCalledWith([
+        { command: "addtagid", parameters: ["42", "title", "Airbag"] },
+        { command: "addtagid", parameters: ["42", "album", "OK Computer"] },
+        { command: "addtagid", parameters: ["42", "artist", "Radiohead"] },
+      ]);
+    });
+
+    it("does not set tags when load succeeds (no song ID)", async () => {
+      await adapter.clearAddPlayTrack(queueItem);
+
+      expect(vi.mocked(mpdPlugin.sendMpdCommandArray)).not.toHaveBeenCalled();
+    });
+
+    it("sets consume update service before playing", async () => {
       await adapter.clearAddPlayTrack(queueItem);
 
       expect(commandRouter.stateMachine.setConsumeUpdateService).toHaveBeenCalledWith(
         "mpd",
         true,
         false,
-      );
-    });
-
-    it("pushes state to Volumio", async () => {
-      const queueItem: QueueItem = {
-        uri: "http://example.com/track.flac",
-        service: "plex",
-        name: "Test Track",
-        artist: "Test Artist",
-        album: "Test Album",
-        albumart: "/art.jpg",
-        duration: 200,
-        type: "track",
-      };
-
-      await adapter.clearAddPlayTrack(queueItem);
-
-      expect(commandRouter.servicePushState).toHaveBeenCalledWith(
-        expect.objectContaining({
-          status: "play",
-          service: "plex",
-          title: "Test Track",
-          artist: "Test Artist",
-          album: "Test Album",
-          seek: 0,
-          duration: 200,
-        }),
-        "plex",
       );
     });
   });
