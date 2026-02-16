@@ -522,6 +522,20 @@ export class VolumioAdapter {
       });
     }
 
+    if (results.artists.length > 0) {
+      sections.push({
+        title: "Plex Artists",
+        availableListViews: ["list", "grid"],
+        items: results.artists.map((artist) => ({
+          service: SERVICE_NAME,
+          type: "folder" as const,
+          title: artist.title,
+          albumart: artist.artworkUrl ? service.getArtworkUrl(artist.artworkUrl) : undefined,
+          uri: `plex/artist/${encodePathSegment(artist.albumsKey)}`,
+        })),
+      });
+    }
+
     if (results.albums.length > 0) {
       sections.push({
         title: "Plex Albums",

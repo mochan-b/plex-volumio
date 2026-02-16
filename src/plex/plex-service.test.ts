@@ -4,6 +4,7 @@ import type { PlexApiClient } from "./api-client.js";
 import type { PlexConnection } from "../core/stream-resolver.js";
 import type {
   RawLibraryResponse,
+  RawArtistResponse,
   RawAlbumResponse,
   RawTrackResponse,
   RawPlaylistResponse,
@@ -118,6 +119,20 @@ const playlistsFixture: RawPlaylistResponse = {
   },
 };
 
+const artistsFixture: RawArtistResponse = {
+  MediaContainer: {
+    size: 1,
+    Metadata: [
+      {
+        ratingKey: "500",
+        key: "/library/metadata/500/children",
+        title: "Radiohead",
+        thumb: "/library/metadata/500/thumb/123",
+      },
+    ],
+  },
+};
+
 const emptyTracksFixture: RawTrackResponse = {
   MediaContainer: {
     size: 0,
@@ -137,6 +152,7 @@ function createMockClient(): PlexApiClient {
     getTrackMetadata: vi.fn(),
     searchTracks: vi.fn(),
     searchAlbums: vi.fn(),
+    searchArtists: vi.fn(),
   } as unknown as PlexApiClient;
 }
 
@@ -233,16 +249,20 @@ describe("PlexService", () => {
   // ── search ────────────────────────────────────────────────────────
 
   describe("search", () => {
-    it("searches for tracks and albums in parallel", async () => {
+    it("searches for tracks, albums, and artists in parallel", async () => {
       vi.mocked(client.searchTracks).mockResolvedValue(tracksFixture);
       vi.mocked(client.searchAlbums).mockResolvedValue(albumsFixture);
+      vi.mocked(client.searchArtists).mockResolvedValue(artistsFixture);
 
       const results = await service.search("radiohead");
 
       expect(client.searchTracks).toHaveBeenCalledWith("radiohead");
       expect(client.searchAlbums).toHaveBeenCalledWith("radiohead");
+      expect(client.searchArtists).toHaveBeenCalledWith("radiohead");
       expect(results.tracks).toHaveLength(2);
       expect(results.albums).toHaveLength(2);
+      expect(results.artists).toHaveLength(1);
+      expect(results.artists[0]!.title).toBe("Radiohead");
     });
 
     it("returns empty results when nothing matches", async () => {
@@ -250,11 +270,15 @@ describe("PlexService", () => {
       vi.mocked(client.searchAlbums).mockResolvedValue({
         MediaContainer: { size: 0, Metadata: [] },
       });
+      vi.mocked(client.searchArtists).mockResolvedValue({
+        MediaContainer: { size: 0, Metadata: [] },
+      });
 
       const results = await service.search("nonexistent");
 
       expect(results.tracks).toHaveLength(0);
       expect(results.albums).toHaveLength(0);
+      expect(results.artists).toHaveLength(0);
     });
   });
 

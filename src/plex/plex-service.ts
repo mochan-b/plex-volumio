@@ -19,6 +19,7 @@ export interface PlayableTrack extends Track {
 export interface SearchResults {
   tracks: Track[];
   albums: Album[];
+  artists: Artist[];
 }
 
 export class PlexService {
@@ -87,15 +88,17 @@ export class PlexService {
     return parseTracks(raw);
   }
 
-  /** Search for tracks and albums matching a query. */
+  /** Search for tracks, albums, and artists matching a query. */
   async search(query: string): Promise<SearchResults> {
-    const [rawTracks, rawAlbums] = await Promise.all([
+    const [rawTracks, rawAlbums, rawArtists] = await Promise.all([
       this.apiClient.searchTracks(query),
       this.apiClient.searchAlbums(query),
+      this.apiClient.searchArtists(query),
     ]);
     return {
       tracks: parseTracks(rawTracks),
       albums: parseAlbums(rawAlbums),
+      artists: parseArtists(rawArtists),
     };
   }
 

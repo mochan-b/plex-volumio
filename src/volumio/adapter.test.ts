@@ -125,7 +125,7 @@ function createMockPlexService(): PlexService {
     getAlbumTracks: vi.fn<(k: string) => Promise<Track[]>>().mockResolvedValue(tracksFixture),
     getPlaylists: vi.fn<() => Promise<Playlist[]>>().mockResolvedValue(playlistsFixture),
     getPlaylistTracks: vi.fn<(k: string) => Promise<Track[]>>().mockResolvedValue(tracksFixture),
-    search: vi.fn().mockResolvedValue({ tracks: tracksFixture, albums: albumsFixture }),
+    search: vi.fn().mockResolvedValue({ tracks: tracksFixture, albums: albumsFixture, artists: artistsFixture }),
     getPlayableTrack: vi.fn<(id: string) => Promise<PlayableTrack>>().mockResolvedValue(playableTrackFixture),
     getStreamUrl: vi.fn<(k: string) => string>().mockImplementation(
       (streamKey: string) => `http://192.168.1.100:32400${streamKey}?X-Plex-Token=test-token`,
@@ -562,11 +562,11 @@ describe("VolumioAdapter", () => {
   // ── Search ───────────────────────────────────────────────────────
 
   describe("search", () => {
-    it("returns tracks and albums in Volumio format", async () => {
+    it("returns tracks, artists, and albums in Volumio format", async () => {
       const result = (await adapter.search({ value: "radiohead" })) as SearchResultSection[];
 
       expect(mockService.search).toHaveBeenCalledWith("radiohead");
-      expect(result).toHaveLength(2);
+      expect(result).toHaveLength(3);
 
       // Tracks section
       expect(result[0]!.title).toBe("Plex Tracks");
@@ -574,24 +574,31 @@ describe("VolumioAdapter", () => {
       expect(result[0]!.items[0]!.title).toBe("Airbag");
       expect(result[0]!.items[0]!.type).toBe("song");
 
-      // Albums section
-      expect(result[1]!.title).toBe("Plex Albums");
+      // Artists section
+      expect(result[1]!.title).toBe("Plex Artists");
       expect(result[1]!.items).toHaveLength(2);
-      expect(result[1]!.items[0]!.title).toBe("OK Computer");
+      expect(result[1]!.items[0]!.title).toBe("Radiohead");
       expect(result[1]!.items[0]!.type).toBe("folder");
+
+      // Albums section
+      expect(result[2]!.title).toBe("Plex Albums");
+      expect(result[2]!.items).toHaveLength(2);
+      expect(result[2]!.items[0]!.title).toBe("OK Computer");
+      expect(result[2]!.items[0]!.type).toBe("folder");
     });
 
     it("omits empty sections", async () => {
-      vi.mocked(mockService.search).mockResolvedValue({ tracks: [], albums: [] });
+      vi.mocked(mockService.search).mockResolvedValue({ tracks: [], albums: [], artists: [] });
 
       const result = (await adapter.search({ value: "nothing" })) as SearchResultSection[];
       expect(result).toHaveLength(0);
     });
 
-    it("returns only tracks section when no album matches", async () => {
+    it("returns only tracks section when no album or artist matches", async () => {
       vi.mocked(mockService.search).mockResolvedValue({
         tracks: tracksFixture,
         albums: [],
+        artists: [],
       });
 
       const result = (await adapter.search({ value: "airbag" })) as SearchResultSection[];

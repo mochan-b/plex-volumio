@@ -131,6 +131,13 @@ export class PlexApiClient {
     );
   }
 
+  /** Search for artists matching a query (type=8). */
+  async searchArtists(query: string): Promise<RawArtistResponse> {
+    return this.request<RawArtistResponse>(
+      `/search?type=8&query=${encodeURIComponent(query)}`,
+    );
+  }
+
   // ── Internal ────────────────────────────────────────────────────
 
   private request<T>(path: string): Promise<T> {
