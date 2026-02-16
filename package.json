@@ -13,9 +13,16 @@
     "plugin_type": "music_service",
     "icon": "fa-server"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mochan-b/plex-volumio.git"
+  },
   "keywords": [],
-  "author": "",
+  "author": "Mochan Shrestha",
   "license": "ISC",
+  "engines": {
+    "node": ">=14"
+  },
   "dependencies": {
     "kew": "^0.7.0",
     "v-conf": "^1.4.0"
