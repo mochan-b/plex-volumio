@@ -37,6 +37,7 @@ export interface VolumioCoreCommand {
 /** Volumio's state machine — manages playback queue and state. */
 export interface VolumioStateMachine {
   setConsumeUpdateService(service: string | undefined, state?: boolean, remove?: boolean): void;
+  previous(): PromiseLike<unknown>;
 }
 
 /** Volumio plugin manager — used to get references to other plugins. */
@@ -57,6 +58,7 @@ export interface MpdPlugin {
   stop(): PromiseLike<unknown>;
   pause(): PromiseLike<unknown>;
   resume(): PromiseLike<unknown>;
+  next(): PromiseLike<unknown>;
   seek(position: number): PromiseLike<unknown>;
   clientMpd: {
     sendCommand(command: unknown, callback: (err: unknown, msg: string) => void): void;

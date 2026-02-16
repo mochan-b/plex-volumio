@@ -501,6 +501,20 @@ export class VolumioAdapter {
     return this.getMpdPlugin().seek(position);
   }
 
+  /** Skip to the next track. */
+  next(): unknown {
+    this.logger.info("[Plex] next");
+    this.commandRouter.stateMachine.setConsumeUpdateService("mpd", true, false);
+    return this.getMpdPlugin().next();
+  }
+
+  /** Go back to the previous track. */
+  previous(): unknown {
+    this.logger.info("[Plex] previous");
+    this.commandRouter.stateMachine.setConsumeUpdateService(undefined);
+    return this.commandRouter.stateMachine.previous();
+  }
+
   // ── Search ─────────────────────────────────────────────────────────
 
   /** Search Plex for tracks and albums matching the query. */

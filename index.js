@@ -151,6 +151,20 @@ ControllerPlex.prototype.seek = function (position) {
   return this.adapter.seek(position);
 };
 
+ControllerPlex.prototype.next = function () {
+  if (!this.adapter) {
+    return libQ.reject(new Error('Plex plugin not initialized'));
+  }
+  return this.adapter.next();
+};
+
+ControllerPlex.prototype.previous = function () {
+  if (!this.adapter) {
+    return libQ.reject(new Error('Plex plugin not initialized'));
+  }
+  return this.adapter.previous();
+};
+
 // ── Search ──────────────────────────────────────────────────────────
 
 ControllerPlex.prototype.search = function (query) {
