@@ -1,12 +1,12 @@
 {
   "page": {
-    "label": "PLUGIN_NAME"
+    "label": "TRANSLATE.PLUGIN_NAME"
   },
   "sections": [
     {
       "id": "plex_connection",
       "element": "section",
-      "label": "PLEX_CONNECTION",
+      "label": "TRANSLATE.PLEX_CONNECTION",
       "icon": "fa-server",
       "onSave": {
         "type": "controller",
@@ -14,7 +14,7 @@
         "method": "saveConfig"
       },
       "saveButton": {
-        "label": "SAVE",
+        "label": "TRANSLATE.SAVE",
         "data": ["host", "port", "token", "https"]
       },
       "content": [
@@ -22,32 +22,32 @@
           "id": "host",
           "type": "text",
           "element": "input",
-          "doc": "PLEX_HOST_DOC",
-          "label": "PLEX_HOST",
+          "doc": "TRANSLATE.PLEX_HOST_DOC",
+          "label": "TRANSLATE.PLEX_HOST",
           "value": ""
         },
         {
           "id": "port",
           "type": "number",
           "element": "input",
-          "doc": "PLEX_PORT_DOC",
-          "label": "PLEX_PORT",
+          "doc": "TRANSLATE.PLEX_PORT_DOC",
+          "label": "TRANSLATE.PLEX_PORT",
           "value": ""
         },
         {
           "id": "token",
           "type": "password",
           "element": "input",
-          "doc": "PLEX_TOKEN_DOC",
-          "label": "PLEX_TOKEN",
+          "doc": "TRANSLATE.PLEX_TOKEN_DOC",
+          "label": "TRANSLATE.PLEX_TOKEN",
           "value": ""
         },
         {
           "id": "https",
           "type": "switch",
           "element": "switch",
-          "doc": "PLEX_HTTPS_DOC",
-          "label": "PLEX_HTTPS",
+          "doc": "TRANSLATE.PLEX_HTTPS_DOC",
+          "label": "TRANSLATE.PLEX_HTTPS",
           "value": false
         }
       ]
