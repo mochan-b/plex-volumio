@@ -11,6 +11,8 @@ export interface PlexConnection {
   host: string;
   port: number;
   token: string;
+  /** When true, use HTTPS instead of HTTP. Default: false */
+  https?: boolean;
 }
 
 /** Options for building a stream URL. */
@@ -30,11 +32,12 @@ export interface StreamOptions extends PlexConnection {
  * Transcoded play routes through Plex's universal transcoder.
  */
 export function buildStreamUrl(options: StreamOptions): string {
-  const { host, port, token, trackKey, transcode = false, format = "mp3" } = options;
-  const base = `http://${host}:${port}`;
+  const { host, port, token, trackKey, transcode = false, format = "mp3", https: useHttps = false } = options;
+  const scheme = useHttps ? "https" : "http";
+  const base = `${scheme}://${host}:${port}`;
 
   if (transcode) {
-    return buildTranscodeUrl(base, token, trackKey, format);
+    return buildTranscodeUrl(base, token, trackKey, format, scheme);
   }
 
   return buildDirectUrl(base, token, trackKey);
@@ -45,8 +48,9 @@ export function buildStreamUrl(options: StreamOptions): string {
  * Appends the authentication token as a query parameter.
  */
 export function buildResourceUrl(connection: PlexConnection, path: string): string {
-  const { host, port, token } = connection;
-  return `http://${host}:${port}${path}?X-Plex-Token=${encodeURIComponent(token)}`;
+  const { host, port, token, https: useHttps = false } = connection;
+  const scheme = useHttps ? "https" : "http";
+  return `${scheme}://${host}:${port}${path}?X-Plex-Token=${encodeURIComponent(token)}`;
 }
 
 function buildDirectUrl(base: string, token: string, trackKey: string): string {
@@ -58,12 +62,13 @@ function buildTranscodeUrl(
   token: string,
   trackKey: string,
   format: string,
+  scheme: string = "http",
 ): string {
   const params = new URLSearchParams({
     path: trackKey,
     mediaIndex: "0",
     partIndex: "0",
-    protocol: "http",
+    protocol: scheme,
     "X-Plex-Token": token,
   });
 

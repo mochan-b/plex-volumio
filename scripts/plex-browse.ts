@@ -10,6 +10,7 @@
  * --host       Plex server host (default: PLEX_HOST env or "localhost")
  * --port       Plex server port (default: PLEX_PORT env or "32400")
  * --token      Plex auth token  (default: PLEX_TOKEN env, required)
+ * --https      Use HTTPS        (default: PLEX_HTTPS env or false)
  */
 
 import { parseLibraries, parseAlbums, parsePlaylists, parseTracks } from "../src/core/parser.js";
@@ -31,6 +32,7 @@ const mode = getArg("mode") ?? "albums";
 const host = getArg("host") ?? process.env["PLEX_HOST"] ?? "localhost";
 const port = getArg("port") ?? process.env["PLEX_PORT"] ?? "32400";
 const token = getArg("token") ?? process.env["PLEX_TOKEN"];
+const useHttps = process.argv.includes("--https") || process.env["PLEX_HTTPS"] === "true";
 
 if (!token) {
   console.error("Error: Plex token is required.");
@@ -49,7 +51,8 @@ if (mode !== "albums" && mode !== "playlists") {
   process.exit(1);
 }
 
-const baseUrl = `http://${host}:${port}`;
+const scheme = useHttps ? "https" : "http";
+const baseUrl = `${scheme}://${host}:${port}`;
 
 // ── Helpers ──────────────────────────────────────────────────────────
 

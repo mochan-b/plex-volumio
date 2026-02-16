@@ -37,6 +37,7 @@ function getArg(name: string): string | undefined {
 const host = getArg("host") ?? process.env["PLEX_HOST"] ?? "localhost";
 const port = getArg("port") ?? process.env["PLEX_PORT"] ?? "32400";
 const token = getArg("token") ?? process.env["PLEX_TOKEN"];
+const useHttps = process.argv.includes("--https") || process.env["PLEX_HTTPS"] === "true";
 
 if (!token) {
   console.error("Error: Plex token is required.");
@@ -45,7 +46,8 @@ if (!token) {
 }
 
 const plexToken: string = token;
-const baseUrl = `http://${host}:${port}`;
+const scheme = useHttps ? "https" : "http";
+const baseUrl = `${scheme}://${host}:${port}`;
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -206,6 +208,7 @@ async function main() {
     host,
     port: parseInt(port, 10),
     token: plexToken,
+    https: useHttps,
     trackKey: track.streamKey,
   });
 

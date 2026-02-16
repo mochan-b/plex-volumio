@@ -10,6 +10,7 @@
  */
 
 import http from "http";
+import https from "https";
 import type { PlexConnection } from "../core/stream-resolver.js";
 import type {
   RawLibraryResponse,
@@ -62,12 +63,14 @@ export class PlexApiClient {
   private readonly host: string;
   private readonly port: number;
   private readonly token: string;
+  private readonly https: boolean;
   private readonly timeoutMs: number;
 
   constructor(options: PlexApiClientOptions) {
     this.host = options.host;
     this.port = options.port;
     this.token = options.token;
+    this.https = options.https ?? false;
     this.timeoutMs = options.timeoutMs ?? 10_000;
   }
 
@@ -145,7 +148,8 @@ export class PlexApiClient {
     const fullPath = `${path}${separator}X-Plex-Token=${encodeURIComponent(this.token)}`;
 
     return new Promise<T>((resolve, reject) => {
-      const req = http.get(
+      const httpModule = this.https ? https : http;
+      const req = httpModule.get(
         {
           hostname: this.host,
           port: this.port,

@@ -15,7 +15,7 @@
       },
       "saveButton": {
         "label": "SAVE",
-        "data": ["host", "port", "token"]
+        "data": ["host", "port", "token", "https"]
       },
       "content": [
         {
@@ -41,6 +41,14 @@
           "doc": "PLEX_TOKEN_DOC",
           "label": "PLEX_TOKEN",
           "value": ""
+        },
+        {
+          "id": "https",
+          "type": "switch",
+          "element": "switch",
+          "doc": "PLEX_HTTPS_DOC",
+          "label": "PLEX_HTTPS",
+          "value": false
         }
       ]
     }

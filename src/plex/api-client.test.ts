@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import http from "http";
+import https from "https";
 import { EventEmitter } from "events";
 import {
   PlexApiClient,
@@ -390,5 +391,59 @@ describe("configuration", () => {
 
     const opts = httpGetSpy.mock.calls[0]![0] as http.RequestOptions;
     expect(opts.timeout).toBe(10_000);
+  });
+});
+
+// ── HTTPS support ───────────────────────────────────────────────────
+
+describe("HTTPS support", () => {
+  let httpsGetSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    httpsGetSpy = vi.spyOn(https, "get");
+  });
+
+  function mockHttpsGet(
+    body: unknown,
+    statusCode = 200,
+    statusMessage = "OK",
+  ): void {
+    httpsGetSpy.mockImplementation((_opts: unknown, cb: unknown) => {
+      const res = createMockResponse(body, statusCode, statusMessage);
+      (cb as (res: http.IncomingMessage) => void)(res);
+      const req = new EventEmitter() as http.ClientRequest;
+      req.destroy = vi.fn().mockReturnThis();
+      return req;
+    });
+  }
+
+  it("uses https module when https is true", async () => {
+    mockHttpsGet(LIBRARIES_RESPONSE);
+    const client = new PlexApiClient({ ...CONFIG, https: true });
+
+    await client.getLibraries();
+
+    expect(httpsGetSpy).toHaveBeenCalledTimes(1);
+    expect(httpGetSpy).not.toHaveBeenCalled();
+  });
+
+  it("uses http module when https is false", async () => {
+    mockHttpGet(LIBRARIES_RESPONSE);
+    const client = new PlexApiClient({ ...CONFIG, https: false });
+
+    await client.getLibraries();
+
+    expect(httpGetSpy).toHaveBeenCalledTimes(1);
+    expect(httpsGetSpy).not.toHaveBeenCalled();
+  });
+
+  it("uses http module when https is not specified", async () => {
+    mockHttpGet(LIBRARIES_RESPONSE);
+    const client = new PlexApiClient(CONFIG);
+
+    await client.getLibraries();
+
+    expect(httpGetSpy).toHaveBeenCalledTimes(1);
+    expect(httpsGetSpy).not.toHaveBeenCalled();
   });
 });

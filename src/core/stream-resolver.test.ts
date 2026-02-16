@@ -117,6 +117,78 @@ describe("buildStreamUrl — transcode", () => {
   });
 });
 
+// ── buildStreamUrl — HTTPS ───────────────────────────────────────────
+
+describe("buildStreamUrl — HTTPS", () => {
+  it("uses https:// when https is true", () => {
+    const url = buildStreamUrl({
+      ...connection,
+      https: true,
+      trackKey: "/library/parts/2001/1234567/file.flac",
+    });
+    expect(url).toBe(
+      "https://192.168.1.100:32400/library/parts/2001/1234567/file.flac?X-Plex-Token=abc123token"
+    );
+  });
+
+  it("uses http:// when https is false", () => {
+    const url = buildStreamUrl({
+      ...connection,
+      https: false,
+      trackKey: "/library/parts/1/2/file.mp3",
+    });
+    expect(url).toMatch(/^http:\/\//);
+  });
+
+  it("defaults to http:// when https is not specified", () => {
+    const url = buildStreamUrl({
+      ...connection,
+      trackKey: "/library/parts/1/2/file.mp3",
+    });
+    expect(url).toMatch(/^http:\/\//);
+  });
+
+  it("uses https protocol parameter in transcode URL", () => {
+    const url = buildStreamUrl({
+      ...connection,
+      https: true,
+      trackKey: "/library/parts/1/2/file.flac",
+      transcode: true,
+    });
+    expect(url).toMatch(/^https:\/\//);
+    expect(url).toContain("protocol=https");
+  });
+
+  it("uses http protocol parameter in transcode URL when https is false", () => {
+    const url = buildStreamUrl({
+      ...connection,
+      https: false,
+      trackKey: "/library/parts/1/2/file.flac",
+      transcode: true,
+    });
+    expect(url).toContain("protocol=http");
+  });
+});
+
+// ── buildResourceUrl — HTTPS ────────────────────────────────────────
+
+describe("buildResourceUrl — HTTPS", () => {
+  it("uses https:// when https is true", () => {
+    const url = buildResourceUrl(
+      { ...connection, https: true },
+      "/library/metadata/1001/thumb/1609459200"
+    );
+    expect(url).toBe(
+      "https://192.168.1.100:32400/library/metadata/1001/thumb/1609459200?X-Plex-Token=abc123token"
+    );
+  });
+
+  it("uses http:// when https is not specified", () => {
+    const url = buildResourceUrl(connection, "/some/path");
+    expect(url).toMatch(/^http:\/\//);
+  });
+});
+
 // ── buildResourceUrl ────────────────────────────────────────────────
 
 describe("buildResourceUrl", () => {

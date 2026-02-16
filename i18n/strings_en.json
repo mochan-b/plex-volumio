@@ -7,5 +7,7 @@
   "PLEX_PORT_DOC": "Port number for your Plex Media Server (default: 32400)",
   "PLEX_TOKEN": "Token",
   "PLEX_TOKEN_DOC": "Your Plex authentication token. See https://support.plex.tv/articles/204059436/ for instructions.",
+  "PLEX_HTTPS": "HTTPS",
+  "PLEX_HTTPS_DOC": "Enable HTTPS for connecting to your Plex server. Connection fails if your server does not support HTTPS.",
   "SAVE": "Save"
 }

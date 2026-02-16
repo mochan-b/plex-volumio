@@ -21,8 +21,9 @@ ControllerPlex.prototype.onVolumioStart = function () {
   var host = this.config.get('host') || 'localhost';
   var port = this.config.get('port') || 32400;
   var token = this.config.get('token') || '';
+  var https = this.config.get('https') || false;
 
-  this._initAdapter(host, port, token);
+  this._initAdapter(host, port, token, https);
 
   return libQ.resolve();
 };
@@ -61,6 +62,7 @@ ControllerPlex.prototype.getUIConfig = function () {
       uiconf.sections[0].content[0].value = self.config.get('host') || 'localhost';
       uiconf.sections[0].content[1].value = self.config.get('port') || 32400;
       uiconf.sections[0].content[2].value = self.config.get('token') || '';
+      uiconf.sections[0].content[3].value = self.config.get('https') || false;
       defer.resolve(uiconf);
     })
     .fail(function (error) {
@@ -77,15 +79,18 @@ ControllerPlex.prototype.saveConfig = function (data) {
   var host = (data.host && data.host.value !== undefined) ? data.host.value : data.host;
   var port = (data.port && data.port.value !== undefined) ? data.port.value : data.port;
   var token = (data.token && data.token.value !== undefined) ? data.token.value : data.token;
+  var https = (data.https && data.https.value !== undefined) ? data.https.value : data.https;
 
   // v-conf requires port to be a number
   port = Number(port) || 32400;
+  https = !!https;
 
   this.config.set('host', host);
   this.config.set('port', port);
   this.config.set('token', token);
+  this.config.set('https', https);
 
-  this._initAdapter(host, port, token);
+  this._initAdapter(host, port, token, https);
 
   this.commandRouter.pushToastMessage('success', 'Plex', 'Configuration saved');
   return libQ.resolve();
@@ -157,13 +162,13 @@ ControllerPlex.prototype.search = function (query) {
 
 // ── Internal ────────────────────────────────────────────────────────
 
-ControllerPlex.prototype._initAdapter = function (host, port, token) {
+ControllerPlex.prototype._initAdapter = function (host, port, token, https) {
   var compiled = require('./dist/index.js');
   var VolumioAdapter = compiled.VolumioAdapter;
   var PlexApiClient = compiled.PlexApiClient;
   var PlexService = compiled.PlexService;
 
-  var connection = { host: host, port: port, token: token };
+  var connection = { host: host, port: port, token: token, https: !!https };
   var apiClient = new PlexApiClient(connection);
   var plexService = new PlexService(apiClient, connection);
 

@@ -24,6 +24,7 @@ function getArg(name: string): string | undefined {
 const host = getArg("host") ?? process.env["PLEX_HOST"] ?? "localhost";
 const port = parseInt(getArg("port") ?? process.env["PLEX_PORT"] ?? "32400", 10);
 const token = getArg("token") ?? process.env["PLEX_TOKEN"];
+const useHttps = process.argv.includes("--https") || process.env["PLEX_HTTPS"] === "true";
 const searchQuery = getArg("search");
 
 if (!token) {
@@ -63,11 +64,12 @@ function fail(label: string, err: unknown): void {
 // ── Main ─────────────────────────────────────────────────────────────
 
 async function main() {
-  const connection = { host, port, token };
+  const connection = { host, port, token, https: useHttps };
   const client = new PlexApiClient(connection);
   const service = new PlexService(client, connection);
 
-  console.log(`Connecting to Plex at http://${host}:${port} ...`);
+  const scheme = useHttps ? "https" : "http";
+  console.log(`Connecting to Plex at ${scheme}://${host}:${port} ...`);
 
   // ── 1. Libraries ────────────────────────────────────────────────
 
