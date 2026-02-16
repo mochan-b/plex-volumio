@@ -127,6 +127,9 @@ function createMockPlexService(): PlexService {
     getPlaylistTracks: vi.fn<(k: string) => Promise<Track[]>>().mockResolvedValue(tracksFixture),
     search: vi.fn().mockResolvedValue({ tracks: tracksFixture, albums: albumsFixture }),
     getPlayableTrack: vi.fn<(id: string) => Promise<PlayableTrack>>().mockResolvedValue(playableTrackFixture),
+    getStreamUrl: vi.fn<(k: string) => string>().mockImplementation(
+      (streamKey: string) => `http://192.168.1.100:32400${streamKey}?X-Plex-Token=test-token`,
+    ),
     getArtworkUrl: vi.fn<(p: string) => string>().mockImplementation(
       (path: string) => `http://192.168.1.100:32400${path}?X-Plex-Token=test-token`,
     ),
@@ -432,25 +435,18 @@ describe("VolumioAdapter", () => {
 
   describe("explodeUri — album", () => {
     it("resolves all album tracks to QueueItems", async () => {
-      // Mock getPlayableTrack to return different tracks based on ID
-      vi.mocked(mockService.getPlayableTrack).mockImplementation(async (id: string) => {
-        const track = tracksFixture.find((t) => t.id === id);
-        if (!track) throw new Error(`Track not found: ${id}`);
-        return {
-          ...track,
-          streamUrl: `http://192.168.1.100:32400${track.streamKey}?X-Plex-Token=test-token`,
-        };
-      });
-
       const uri = "plex/album/__library__metadata__1001__children";
       const result = (await adapter.explodeUri(uri)) as QueueItem[];
 
       expect(mockService.getAlbumTracks).toHaveBeenCalledWith(
         "/library/metadata/1001/children",
       );
+      expect(mockService.getPlayableTrack).not.toHaveBeenCalled();
       expect(result).toHaveLength(2);
       expect(result[0]!.name).toBe("Airbag");
+      expect(result[0]!.uri).toContain("/library/parts/2001/file.flac");
       expect(result[1]!.name).toBe("Paranoid Android");
+      expect(result[1]!.uri).toContain("/library/parts/2002/file.flac");
     });
   });
 

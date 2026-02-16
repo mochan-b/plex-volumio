@@ -117,6 +117,11 @@ export class PlexService {
     return { ...track, streamUrl };
   }
 
+  /** Build a stream URL from a track's streamKey. */
+  getStreamUrl(streamKey: string): string {
+    return buildStreamUrl({ ...this.connection, trackKey: streamKey });
+  }
+
   /** Build a full artwork URL from a relative Plex thumbnail path. */
   getArtworkUrl(path: string): string {
     return buildResourceUrl(this.connection, path);

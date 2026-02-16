@@ -393,11 +393,8 @@ export class VolumioAdapter {
     if (parts[1] === "album" && parts[2]) {
       const trackListKey = decodePathSegment(parts.slice(2).join("/"));
       const tracks = await service.getAlbumTracks(trackListKey);
-      return Promise.all(
-        tracks.map(async (track) => {
-          const playable = await service.getPlayableTrack(track.id);
-          return this.trackToQueueItem(service, playable, playable.streamUrl);
-        }),
+      return tracks.map((track) =>
+        this.trackToQueueItem(service, track, service.getStreamUrl(track.streamKey)),
       );
     }
 
@@ -405,11 +402,8 @@ export class VolumioAdapter {
     if (parts[1] === "playlist" && parts[2]) {
       const itemsKey = decodePathSegment(parts.slice(2).join("/"));
       const tracks = await service.getPlaylistTracks(itemsKey);
-      return Promise.all(
-        tracks.map(async (track) => {
-          const playable = await service.getPlayableTrack(track.id);
-          return this.trackToQueueItem(service, playable, playable.streamUrl);
-        }),
+      return tracks.map((track) =>
+        this.trackToQueueItem(service, track, service.getStreamUrl(track.streamKey)),
       );
     }
 
