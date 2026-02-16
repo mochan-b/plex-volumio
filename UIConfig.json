@@ -36,7 +36,7 @@
         },
         {
           "id": "token",
-          "type": "text",
+          "type": "password",
           "element": "input",
           "doc": "PLEX_TOKEN_DOC",
           "label": "PLEX_TOKEN",
