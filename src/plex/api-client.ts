@@ -103,6 +103,23 @@ export class PlexApiClient {
     return this.request<RawAlbumResponse>(artistKey);
   }
 
+  /** Fetch popular tracks for an artist by querying the library section with rating-based sorting. */
+  async getPopularTracks(artistId: string): Promise<RawTrackResponse> {
+    // First, get the artist metadata to find which library section they belong to
+    const artistMeta = await this.request<RawArtistResponse>(
+      `/library/metadata/${encodeURIComponent(artistId)}`,
+    );
+    const sectionId = (artistMeta.MediaContainer as Record<string, unknown>).librarySectionID as string | undefined;
+    if (!sectionId) {
+      throw new PlexApiError(`Could not determine library section for artist ${artistId}`, 0);
+    }
+    // Query the section for tracks by this artist, sorted by popularity
+    const enc = encodeURIComponent;
+    return this.request<RawTrackResponse>(
+      `/library/sections/${enc(sectionId)}/all?type=10&artist.id=${enc(artistId)}&sort=ratingCount:desc&limit=100`,
+    );
+  }
+
   /** Fetch all playlists on the server. */
   async getPlaylists(): Promise<RawPlaylistResponse> {
     return this.request<RawPlaylistResponse>("/playlists");

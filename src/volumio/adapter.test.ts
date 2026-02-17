@@ -122,6 +122,7 @@ function createMockPlexService(): PlexService {
     getAlbums: vi.fn<(k: string) => Promise<Album[]>>().mockResolvedValue(albumsFixture),
     getAllAlbums: vi.fn<() => Promise<Album[]>>().mockResolvedValue(albumsFixture),
     getArtistAlbums: vi.fn<(k: string) => Promise<Album[]>>().mockResolvedValue(albumsFixture),
+    getPopularTracks: vi.fn<(id: string) => Promise<Track[]>>().mockResolvedValue(tracksFixture),
     getAlbumTracks: vi.fn<(k: string) => Promise<Track[]>>().mockResolvedValue(tracksFixture),
     getPlaylists: vi.fn<() => Promise<Playlist[]>>().mockResolvedValue(playlistsFixture),
     getPlaylistTracks: vi.fn<(k: string) => Promise<Track[]>>().mockResolvedValue(tracksFixture),
@@ -300,10 +301,15 @@ describe("VolumioAdapter", () => {
         "/library/metadata/500/children",
       );
       const items = result.navigation.lists[0]!.items;
-      expect(items).toHaveLength(2);
+      expect(items).toHaveLength(3);
+      // Albums first
       expect(items[0]!.title).toBe("OK Computer");
       expect(items[0]!.artist).toBe("Radiohead");
       expect(items[0]!.type).toBe("folder");
+      // Popular Tracks folder at the end
+      expect(items[2]!.title).toBe("Popular Tracks");
+      expect(items[2]!.type).toBe("folder");
+      expect(items[2]!.uri).toBe("plex/popular/500");
     });
 
     it("sets prev URI to plex/artists", async () => {

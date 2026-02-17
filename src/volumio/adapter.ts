@@ -120,7 +120,8 @@ export class VolumioAdapter {
    * Handle browse navigation. URI scheme:
    * - plex                          → root (Artists, Albums, Playlists)
    * - plex/artists                  → all artists
-   * - plex/artist/{albumsKey}       → albums by artist
+   * - plex/artist/{albumsKey}       → albums by artist (+ popular tracks folder)
+   * - plex/popular/{artistId}       → popular tracks for artist
    * - plex/albums                   → all albums
    * - plex/album/{trackListKey}     → tracks in album
    * - plex/playlists                → list playlists
@@ -159,6 +160,11 @@ export class VolumioAdapter {
     if (parts[1] === "artist" && parts[2]) {
       const albumsKey = decodePathSegment(parts.slice(2).join("/"));
       return this.browseArtist(service, albumsKey);
+    }
+
+    // plex/popular/{artistId}
+    if (parts[1] === "popular" && parts[2]) {
+      return this.browsePopularTracks(service, parts[2]);
     }
 
     // plex/album/{trackListKey...}  (key may contain slashes, encoded as __)
@@ -245,14 +251,28 @@ export class VolumioAdapter {
   private async browseArtist(service: PlexService, albumsKey: string): Promise<NavigationPage> {
     const albums = await service.getArtistAlbums(albumsKey);
 
+    // Extract artist ratingKey from albumsKey (e.g. "/library/metadata/123/children" → "123")
+    const artistId = albumsKey.split("/").slice(-2, -1)[0];
+
     const items: NavigationListItem[] = albums.map((album) => ({
       service: SERVICE_NAME,
-      type: "folder",
+      type: "folder" as const,
       title: album.title,
       artist: album.artist,
       albumart: album.artworkUrl ? service.getArtworkUrl(album.artworkUrl) : undefined,
       uri: `plex/album/${encodePathSegment(album.trackListKey)}`,
     }));
+
+    // Add "Popular Tracks" folder after the albums
+    if (artistId) {
+      items.push({
+        service: SERVICE_NAME,
+        type: "folder",
+        title: "Popular Tracks",
+        uri: `plex/popular/${artistId}`,
+        icon: "fa fa-fire",
+      });
+    }
 
     return {
       navigation: {
@@ -261,6 +281,28 @@ export class VolumioAdapter {
           {
             title: albums[0]?.artist ?? "Artist",
             availableListViews: ["list", "grid"],
+            items,
+          },
+        ],
+      },
+    };
+  }
+
+  private async browsePopularTracks(service: PlexService, artistId: string): Promise<NavigationPage> {
+    const tracks = await service.getPopularTracks(artistId);
+
+    const items: NavigationListItem[] = tracks.map((track) =>
+      this.trackToNavItem(service, track),
+    );
+
+    return {
+      navigation: {
+        prev: { uri: `plex/artist/${encodePathSegment(`/library/metadata/${artistId}/children`)}` },
+        lists: [
+          {
+            title: "Popular Tracks",
+            icon: "fa fa-fire",
+            availableListViews: ["list"],
             items,
           },
         ],
@@ -391,6 +433,12 @@ export class VolumioAdapter {
     if (parts[1] === "track" && parts[2]) {
       const playable = await service.getPlayableTrack(parts[2]);
       return [this.trackToQueueItem(service, playable)];
+    }
+
+    // plex/popular/{artistId}
+    if (parts[1] === "popular" && parts[2]) {
+      const tracks = await service.getPopularTracks(parts[2]);
+      return tracks.map((track) => this.trackToQueueItem(service, track));
     }
 
     // plex/album/{trackListKey...}

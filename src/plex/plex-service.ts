@@ -76,6 +76,12 @@ export class PlexService {
     return parseTracks(raw);
   }
 
+  /** Get popular tracks for an artist by their ratingKey. */
+  async getPopularTracks(artistId: string): Promise<Track[]> {
+    const raw = await this.apiClient.getPopularTracks(artistId);
+    return parseTracks(raw);
+  }
+
   /** Get all audio playlists (filters out video playlists). */
   async getPlaylists(): Promise<Playlist[]> {
     const raw = await this.apiClient.getPlaylists();
