@@ -14,5 +14,9 @@
   "https": {
     "type": "boolean",
     "value": false
+  },
+  "shuffle": {
+    "type": "boolean",
+    "value": false
   }
 }

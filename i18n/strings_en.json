@@ -9,5 +9,8 @@
   "PLEX_TOKEN_DOC": "Your Plex authentication token. See https://support.plex.tv/articles/204059436/ for instructions.",
   "PLEX_HTTPS": "HTTPS",
   "PLEX_HTTPS_DOC": "Enable HTTPS for connecting to your Plex server. Connection fails if your server does not support HTTPS.",
+  "PLEX_OPTIONS": "Options",
+  "PLEX_SHUFFLE": "Shuffle",
+  "PLEX_SHUFFLE_DOC": "Show a Shuffle item at the top of every album and playlist. Clicking it displays the tracks in a randomized order.",
   "SAVE": "Save"
 }

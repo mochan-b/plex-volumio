@@ -49,6 +49,7 @@ export class VolumioAdapter {
   private libQ: KewLib;
   private plexService: PlexService | null = null;
   private connection: PlexConnection | null = null;
+  private shuffleEnabled = false;
 
   private originalServicePushState: VolumioCoreCommand["servicePushState"] | null = null;
 
@@ -109,9 +110,10 @@ export class VolumioAdapter {
   // ── Configure (for external config injection in tests/setup) ───────
 
   /** Set up the PlexService and connection from external config. */
-  configure(plexService: PlexService, connection: PlexConnection): void {
+  configure(plexService: PlexService, connection: PlexConnection, options?: { shuffle?: boolean }): void {
     this.plexService = plexService;
     this.connection = connection;
+    this.shuffleEnabled = options?.shuffle ?? false;
   }
 
   // ── Browse ─────────────────────────────────────────────────────────
@@ -126,6 +128,8 @@ export class VolumioAdapter {
    * - plex/album/{trackListKey}     → tracks in album
    * - plex/playlists                → list playlists
    * - plex/playlist/{itemsKey}      → tracks in playlist
+   * - plex/shuffle-album/{key}      → shuffled album tracks
+   * - plex/shuffle-playlist/{key}   → shuffled playlist tracks
    */
   handleBrowseUri(uri: string): unknown {
     this.logger.info(`[Plex] handleBrowseUri: ${uri}`);
@@ -165,6 +169,18 @@ export class VolumioAdapter {
     // plex/popular/{artistId}
     if (parts[1] === "popular" && parts[2]) {
       return this.browsePopularTracks(service, parts[2]);
+    }
+
+    // plex/shuffle-album/{trackListKey...}
+    if (parts[1] === "shuffle-album" && parts[2]) {
+      const trackListKey = decodePathSegment(parts.slice(2).join("/"));
+      return this.browseShuffleAlbum(service, trackListKey);
+    }
+
+    // plex/shuffle-playlist/{itemsKey...}
+    if (parts[1] === "shuffle-playlist" && parts[2]) {
+      const itemsKey = decodePathSegment(parts.slice(2).join("/"));
+      return this.browseShufflePlaylist(service, itemsKey);
     }
 
     // plex/album/{trackListKey...}  (key may contain slashes, encoded as __)
@@ -339,9 +355,19 @@ export class VolumioAdapter {
   private async browseAlbum(service: PlexService, trackListKey: string): Promise<NavigationPage> {
     const tracks = await service.getAlbumTracks(trackListKey);
 
-    const items: NavigationListItem[] = tracks.map((track) =>
-      this.trackToNavItem(service, track),
-    );
+    const items: NavigationListItem[] = [];
+
+    if (this.shuffleEnabled) {
+      items.push({
+        service: SERVICE_NAME,
+        type: "folder",
+        title: "Shuffle",
+        uri: `plex/shuffle-album/${encodePathSegment(trackListKey)}`,
+        icon: "fa fa-random",
+      });
+    }
+
+    items.push(...tracks.map((track) => this.trackToNavItem(service, track)));
 
     return {
       navigation: {
@@ -386,9 +412,19 @@ export class VolumioAdapter {
   private async browsePlaylist(service: PlexService, itemsKey: string): Promise<NavigationPage> {
     const tracks = await service.getPlaylistTracks(itemsKey);
 
-    const items: NavigationListItem[] = tracks.map((track) =>
-      this.trackToNavItem(service, track),
-    );
+    const items: NavigationListItem[] = [];
+
+    if (this.shuffleEnabled) {
+      items.push({
+        service: SERVICE_NAME,
+        type: "folder",
+        title: "Shuffle",
+        uri: `plex/shuffle-playlist/${encodePathSegment(itemsKey)}`,
+        icon: "fa fa-random",
+      });
+    }
+
+    items.push(...tracks.map((track) => this.trackToNavItem(service, track)));
 
     return {
       navigation: {
@@ -396,6 +432,52 @@ export class VolumioAdapter {
         lists: [
           {
             title: "Playlist",
+            availableListViews: ["list"],
+            items,
+          },
+        ],
+      },
+    };
+  }
+
+  private async browseShuffleAlbum(service: PlexService, trackListKey: string): Promise<NavigationPage> {
+    const tracks = await service.getAlbumTracks(trackListKey);
+    shuffleArray(tracks);
+
+    const items: NavigationListItem[] = tracks.map((track) =>
+      this.trackToNavItem(service, track),
+    );
+
+    return {
+      navigation: {
+        prev: { uri: `plex/album/${encodePathSegment(trackListKey)}` },
+        lists: [
+          {
+            title: "Shuffle",
+            icon: "fa fa-random",
+            availableListViews: ["list"],
+            items,
+          },
+        ],
+      },
+    };
+  }
+
+  private async browseShufflePlaylist(service: PlexService, itemsKey: string): Promise<NavigationPage> {
+    const tracks = await service.getPlaylistTracks(itemsKey);
+    shuffleArray(tracks);
+
+    const items: NavigationListItem[] = tracks.map((track) =>
+      this.trackToNavItem(service, track),
+    );
+
+    return {
+      navigation: {
+        prev: { uri: `plex/playlist/${encodePathSegment(itemsKey)}` },
+        lists: [
+          {
+            title: "Shuffle",
+            icon: "fa fa-random",
             availableListViews: ["list"],
             items,
           },
@@ -438,6 +520,22 @@ export class VolumioAdapter {
     // plex/popular/{artistId}
     if (parts[1] === "popular" && parts[2]) {
       const tracks = await service.getPopularTracks(parts[2]);
+      return tracks.map((track) => this.trackToQueueItem(service, track));
+    }
+
+    // plex/shuffle-album/{trackListKey...}
+    if (parts[1] === "shuffle-album" && parts[2]) {
+      const trackListKey = decodePathSegment(parts.slice(2).join("/"));
+      const tracks = await service.getAlbumTracks(trackListKey);
+      shuffleArray(tracks);
+      return tracks.map((track) => this.trackToQueueItem(service, track));
+    }
+
+    // plex/shuffle-playlist/{itemsKey...}
+    if (parts[1] === "shuffle-playlist" && parts[2]) {
+      const itemsKey = decodePathSegment(parts.slice(2).join("/"));
+      const tracks = await service.getPlaylistTracks(itemsKey);
+      shuffleArray(tracks);
       return tracks.map((track) => this.trackToQueueItem(service, track));
     }
 
@@ -688,4 +786,12 @@ function encodePathSegment(key: string): string {
 
 function decodePathSegment(encoded: string): string {
   return encoded.replace(/__/g, "/");
+}
+
+/** Fisher-Yates in-place shuffle. */
+function shuffleArray<T>(array: T[]): void {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j]!, array[i]!];
+  }
 }

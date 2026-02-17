@@ -22,8 +22,9 @@ ControllerPlex.prototype.onVolumioStart = function () {
   var port = this.config.get('port') || 32400;
   var token = this.config.get('token') || '';
   var https = this.config.get('https') || false;
+  var shuffle = this.config.get('shuffle') || false;
 
-  this._initAdapter(host, port, token, https);
+  this._initAdapter(host, port, token, https, shuffle);
 
   return libQ.resolve();
 };
@@ -63,6 +64,7 @@ ControllerPlex.prototype.getUIConfig = function () {
       uiconf.sections[0].content[1].value = self.config.get('port') || 32400;
       uiconf.sections[0].content[2].value = self.config.get('token') || '';
       uiconf.sections[0].content[3].value = self.config.get('https') || false;
+      uiconf.sections[1].content[0].value = self.config.get('shuffle') || false;
       defer.resolve(uiconf);
     })
     .fail(function (error) {
@@ -96,9 +98,29 @@ ControllerPlex.prototype.saveConfig = function (data) {
   this.config.set('token', token);
   this.config.set('https', https);
 
-  this._initAdapter(host, port, token, https);
+  var shuffle = this.config.get('shuffle') || false;
+  this._initAdapter(host, port, token, https, shuffle);
 
   this.commandRouter.pushToastMessage('success', 'Plex', 'Configuration saved');
+  return libQ.resolve();
+};
+
+ControllerPlex.prototype.saveOptions = function (data) {
+  this.logger.info('[Plex] saveOptions data: ' + JSON.stringify(data));
+
+  var shuffle = (data.shuffle && data.shuffle.value !== undefined) ? data.shuffle.value : data.shuffle;
+  shuffle = !!shuffle;
+
+  this.config.set('shuffle', shuffle);
+
+  var host = this.config.get('host') || 'localhost';
+  var port = this.config.get('port') || 32400;
+  var token = this.config.get('token') || '';
+  var https = this.config.get('https') || false;
+
+  this._initAdapter(host, port, token, https, shuffle);
+
+  this.commandRouter.pushToastMessage('success', 'Plex', 'Options saved');
   return libQ.resolve();
 };
 
@@ -182,7 +204,7 @@ ControllerPlex.prototype.search = function (query) {
 
 // ── Internal ────────────────────────────────────────────────────────
 
-ControllerPlex.prototype._initAdapter = function (host, port, token, https) {
+ControllerPlex.prototype._initAdapter = function (host, port, token, https, shuffle) {
   var compiled = require('./dist/index.js');
   var VolumioAdapter = compiled.VolumioAdapter;
   var PlexApiClient = compiled.PlexApiClient;
@@ -193,5 +215,5 @@ ControllerPlex.prototype._initAdapter = function (host, port, token, https) {
   var plexService = new PlexService(apiClient, connection);
 
   this.adapter = new VolumioAdapter(this.context, libQ);
-  this.adapter.configure(plexService, connection);
+  this.adapter.configure(plexService, connection, { shuffle: !!shuffle });
 };

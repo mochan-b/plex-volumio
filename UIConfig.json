@@ -51,6 +51,31 @@
           "value": false
         }
       ]
+    },
+    {
+      "id": "plex_options",
+      "element": "section",
+      "label": "TRANSLATE.PLEX_OPTIONS",
+      "icon": "fa-cog",
+      "onSave": {
+        "type": "controller",
+        "endpoint": "music_service/plex",
+        "method": "saveOptions"
+      },
+      "saveButton": {
+        "label": "TRANSLATE.SAVE",
+        "data": ["shuffle"]
+      },
+      "content": [
+        {
+          "id": "shuffle",
+          "type": "switch",
+          "element": "switch",
+          "doc": "TRANSLATE.PLEX_SHUFFLE_DOC",
+          "label": "TRANSLATE.PLEX_SHUFFLE",
+          "value": false
+        }
+      ]
     }
   ]
 }
