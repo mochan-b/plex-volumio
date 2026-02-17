@@ -18,7 +18,7 @@ ControllerPlex.prototype.onVolumioStart = function () {
   var configFile = this.commandRouter.pluginManager.getConfigurationFile(this.context, 'config.json');
   this.config.loadFile(configFile);
 
-  var host = this.config.get('host') || 'localhost';
+  var host = this.config.get('host') || '';
   var port = this.config.get('port') || 32400;
   var token = this.config.get('token') || '';
   var https = this.config.get('https') || false;
@@ -61,7 +61,7 @@ ControllerPlex.prototype.getUIConfig = function () {
     __dirname + '/UIConfig.json'
   )
     .then(function (uiconf) {
-      uiconf.sections[0].content[0].value = self.config.get('host') || 'localhost';
+      uiconf.sections[0].content[0].value = self.config.get('host') || '';
       uiconf.sections[0].content[1].value = self.config.get('port') || 32400;
       uiconf.sections[0].content[2].value = self.config.get('token') || '';
       uiconf.sections[0].content[3].value = self.config.get('https') || false;
@@ -122,7 +122,7 @@ ControllerPlex.prototype.saveOptions = function (data) {
   this.config.set('shuffle', shuffle);
   this.config.set('pageSize', pageSize);
 
-  var host = this.config.get('host') || 'localhost';
+  var host = this.config.get('host') || '';
   var port = this.config.get('port') || 32400;
   var token = this.config.get('token') || '';
   var https = this.config.get('https') || false;

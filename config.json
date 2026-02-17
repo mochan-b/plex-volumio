@@ -1,7 +1,7 @@
 {
   "host": {
     "type": "string",
-    "value": "localhost"
+    "value": ""
   },
   "port": {
     "type": "number",
