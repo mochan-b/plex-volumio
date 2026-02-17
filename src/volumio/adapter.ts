@@ -13,6 +13,7 @@ import type {
   MpdPlugin,
   MpdCommandEntry,
   NavigationPage,
+  NavigationList,
   NavigationListItem,
   QueueItem,
   SearchQuery,
@@ -484,30 +485,31 @@ export class VolumioAdapter {
   private async browseAlbum(service: PlexService, trackListKey: string): Promise<NavigationPage> {
     const tracks = await service.getAlbumTracks(trackListKey);
 
-    const items: NavigationListItem[] = [];
+    const lists: NavigationList[] = [];
 
     if (this.shuffleEnabled) {
-      items.push({
-        service: SERVICE_NAME,
-        type: "folder",
-        title: "Shuffle",
-        uri: `plex/shuffle-album/${encodePathSegment(trackListKey)}`,
-        icon: "fa fa-random",
+      lists.push({
+        availableListViews: ["list"],
+        items: [{
+          service: SERVICE_NAME,
+          type: "folder",
+          title: "Shuffle",
+          uri: `plex/shuffle-album/${encodePathSegment(trackListKey)}`,
+          icon: "fa fa-random",
+        }],
       });
     }
 
-    items.push(...tracks.map((track) => this.trackToNavItem(service, track)));
+    lists.push({
+      title: tracks[0]?.album ?? "Album",
+      availableListViews: ["list"],
+      items: tracks.map((track) => this.trackToNavItem(service, track)),
+    });
 
     return {
       navigation: {
         prev: { uri: "plex/albums" },
-        lists: [
-          {
-            title: tracks[0]?.album ?? "Album",
-            availableListViews: ["list"],
-            items,
-          },
-        ],
+        lists,
       },
     };
   }
@@ -541,14 +543,17 @@ export class VolumioAdapter {
   private async browsePlaylist(service: PlexService, itemsKey: string, offset: number): Promise<NavigationPage> {
     const result = await service.getPlaylistTracksPaginated(itemsKey, offset, this.pageSize);
 
-    const items: NavigationListItem[] = [];
+    const lists: NavigationList[] = [];
+
+    // Navigation items (previous page, shuffle) in their own list
+    const navItems: NavigationListItem[] = [];
 
     if (offset > 0) {
       const prevOffset = Math.max(0, offset - this.pageSize);
       const prevUri = prevOffset === 0
         ? `plex/playlist/${encodePathSegment(itemsKey)}`
         : `plex/playlist/${encodePathSegment(itemsKey)}@${prevOffset}`;
-      items.push({
+      navItems.push({
         service: SERVICE_NAME,
         type: "item",
         title: "Previous page",
@@ -558,7 +563,7 @@ export class VolumioAdapter {
     }
 
     if (this.shuffleEnabled && offset === 0) {
-      items.push({
+      navItems.push({
         service: SERVICE_NAME,
         type: "folder",
         title: "Shuffle",
@@ -567,29 +572,38 @@ export class VolumioAdapter {
       });
     }
 
-    items.push(...result.items.map((track) => this.trackToNavItem(service, track)));
+    if (navItems.length > 0) {
+      lists.push({
+        availableListViews: ["list"],
+        items: navItems,
+      });
+    }
+
+    // Tracks in their own list
+    lists.push({
+      title: "Playlist",
+      availableListViews: ["list"],
+      items: result.items.map((track) => this.trackToNavItem(service, track)),
+    });
 
     const nextOffset = offset + result.items.length;
     if (nextOffset < result.totalSize) {
-      items.push({
-        service: SERVICE_NAME,
-        type: "item",
-        title: "Load more...",
-        uri: `plex/playlist/${encodePathSegment(itemsKey)}@${nextOffset}`,
-        icon: "fa fa-arrow-circle-down",
+      lists.push({
+        availableListViews: ["list"],
+        items: [{
+          service: SERVICE_NAME,
+          type: "item",
+          title: "Load more...",
+          uri: `plex/playlist/${encodePathSegment(itemsKey)}@${nextOffset}`,
+          icon: "fa fa-arrow-circle-down",
+        }],
       });
     }
 
     return {
       navigation: {
         prev: { uri: "plex/playlists" },
-        lists: [
-          {
-            title: "Playlist",
-            availableListViews: ["list"],
-            items,
-          },
-        ],
+        lists,
       },
     };
   }

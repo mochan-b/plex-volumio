@@ -513,8 +513,8 @@ describe("VolumioAdapter", () => {
 
       const uri = "plex/playlist/__playlists__5001__items";
       const result = (await adapter.handleBrowseUri(uri)) as NavigationPage;
-      const items = result.navigation.lists[0]!.items;
-      const lastItem = items[items.length - 1]!;
+      const lastList = result.navigation.lists[result.navigation.lists.length - 1]!;
+      const lastItem = lastList.items[lastList.items.length - 1]!;
       expect(lastItem.title).toBe("Load more...");
       expect(lastItem.uri).toBe("plex/playlist/__playlists__5001__items@2");
     });
