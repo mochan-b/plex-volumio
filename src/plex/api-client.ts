@@ -52,6 +52,14 @@ export class PlexConnectionError extends Error {
   }
 }
 
+// ── Pagination ──────────────────────────────────────────────────────
+
+/** Parameters for paginated Plex API requests. */
+export interface PaginationParams {
+  offset: number;
+  limit: number;
+}
+
 // ── Client ──────────────────────────────────────────────────────────
 
 export interface PlexApiClientOptions extends PlexConnection {
@@ -80,16 +88,22 @@ export class PlexApiClient {
   }
 
   /** Fetch artists for a library section (type=8 requests artist-level items). */
-  async getArtists(libraryKey: string): Promise<RawArtistResponse> {
+  async getArtists(libraryKey: string, pagination?: PaginationParams): Promise<RawArtistResponse> {
+    const paginationQuery = pagination
+      ? `&X-Plex-Container-Start=${pagination.offset}&X-Plex-Container-Size=${pagination.limit}`
+      : "";
     return this.request<RawArtistResponse>(
-      `/library/sections/${encodeURIComponent(libraryKey)}/all?type=8`,
+      `/library/sections/${encodeURIComponent(libraryKey)}/all?type=8${paginationQuery}`,
     );
   }
 
   /** Fetch albums for a library section (type=9 requests album-level items). */
-  async getAlbums(libraryKey: string): Promise<RawAlbumResponse> {
+  async getAlbums(libraryKey: string, pagination?: PaginationParams): Promise<RawAlbumResponse> {
+    const paginationQuery = pagination
+      ? `&X-Plex-Container-Start=${pagination.offset}&X-Plex-Container-Size=${pagination.limit}`
+      : "";
     return this.request<RawAlbumResponse>(
-      `/library/sections/${encodeURIComponent(libraryKey)}/all?type=9`,
+      `/library/sections/${encodeURIComponent(libraryKey)}/all?type=9${paginationQuery}`,
     );
   }
 
@@ -126,8 +140,11 @@ export class PlexApiClient {
   }
 
   /** Fetch items (tracks) for a playlist. `itemsKey` is the full path from Playlist.itemsKey. */
-  async getPlaylistItems(itemsKey: string): Promise<RawTrackResponse> {
-    return this.request<RawTrackResponse>(itemsKey);
+  async getPlaylistItems(itemsKey: string, pagination?: PaginationParams): Promise<RawTrackResponse> {
+    const paginationQuery = pagination
+      ? `${itemsKey.includes("?") ? "&" : "?"}X-Plex-Container-Start=${pagination.offset}&X-Plex-Container-Size=${pagination.limit}`
+      : "";
+    return this.request<RawTrackResponse>(`${itemsKey}${paginationQuery}`);
   }
 
   /** Fetch metadata for a single track by its ratingKey. */

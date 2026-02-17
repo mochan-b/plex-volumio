@@ -26,6 +26,28 @@ import type { PlexConnection } from "../core/stream-resolver.js";
 import type { Track } from "../types/index.js";
 
 const SERVICE_NAME = "plex";
+const DEFAULT_PAGE_SIZE = 100;
+
+interface PaginationState {
+  libraryKey: string | null;
+  offset: number;
+}
+
+function parsePaginationUri(uri: string): PaginationState {
+  const atIndex = uri.indexOf("@");
+  if (atIndex === -1) {
+    return { libraryKey: null, offset: 0 };
+  }
+  const paginationPart = uri.slice(atIndex + 1);
+  const colonIndex = paginationPart.indexOf(":");
+  if (colonIndex === -1) {
+    return { libraryKey: paginationPart, offset: 0 };
+  }
+  return {
+    libraryKey: paginationPart.slice(0, colonIndex),
+    offset: parseInt(paginationPart.slice(colonIndex + 1), 10) || 0,
+  };
+}
 
 /** Minimal interface for kew-compatible promise library (Volumio's libQ). */
 export interface KewLib {
@@ -50,6 +72,7 @@ export class VolumioAdapter {
   private plexService: PlexService | null = null;
   private connection: PlexConnection | null = null;
   private shuffleEnabled = false;
+  private pageSize = DEFAULT_PAGE_SIZE;
 
   private originalServicePushState: VolumioCoreCommand["servicePushState"] | null = null;
 
@@ -110,10 +133,11 @@ export class VolumioAdapter {
   // ── Configure (for external config injection in tests/setup) ───────
 
   /** Set up the PlexService and connection from external config. */
-  configure(plexService: PlexService, connection: PlexConnection, options?: { shuffle?: boolean }): void {
+  configure(plexService: PlexService, connection: PlexConnection, options?: { shuffle?: boolean; pageSize?: number }): void {
     this.plexService = plexService;
     this.connection = connection;
     this.shuffleEnabled = options?.shuffle ?? false;
+    this.pageSize = options?.pageSize ?? DEFAULT_PAGE_SIZE;
   }
 
   // ── Browse ─────────────────────────────────────────────────────────
@@ -121,13 +145,16 @@ export class VolumioAdapter {
   /**
    * Handle browse navigation. URI scheme:
    * - plex                          → root (Artists, Albums, Playlists)
-   * - plex/artists                  → all artists
+   * - plex/artists                  → artists (first page)
+   * - plex/artists@{libKey}:{offset}→ artists (paginated)
    * - plex/artist/{albumsKey}       → albums by artist (+ popular tracks folder)
    * - plex/popular/{artistId}       → popular tracks for artist
-   * - plex/albums                   → all albums
+   * - plex/albums                   → albums (first page)
+   * - plex/albums@{libKey}:{offset} → albums (paginated)
    * - plex/album/{trackListKey}     → tracks in album
    * - plex/playlists                → list playlists
-   * - plex/playlist/{itemsKey}      → tracks in playlist
+   * - plex/playlist/{itemsKey}      → tracks in playlist (first page)
+   * - plex/playlist/{itemsKey}@{offset} → tracks in playlist (paginated)
    * - plex/shuffle-album/{key}      → shuffled album tracks
    * - plex/shuffle-playlist/{key}   → shuffled playlist tracks
    */
@@ -145,14 +172,14 @@ export class VolumioAdapter {
       return this.browseRoot();
     }
 
-    // plex/artists
-    if (uri === "plex/artists") {
-      return this.browseArtists(service);
+    // plex/artists or plex/artists@{libKey}:{offset}
+    if (uri === "plex/artists" || uri.startsWith("plex/artists@")) {
+      return this.browseArtists(service, parsePaginationUri(uri));
     }
 
-    // plex/albums
-    if (uri === "plex/albums") {
-      return this.browseAlbums(service);
+    // plex/albums or plex/albums@{libKey}:{offset}
+    if (uri === "plex/albums" || uri.startsWith("plex/albums@")) {
+      return this.browseAlbums(service, parsePaginationUri(uri));
     }
 
     // plex/playlists
@@ -189,10 +216,16 @@ export class VolumioAdapter {
       return this.browseAlbum(service, trackListKey);
     }
 
-    // plex/playlist/{itemsKey...}
+    // plex/playlist/{itemsKey...} or plex/playlist/{itemsKey...}@{offset}
     if (parts[1] === "playlist" && parts[2]) {
-      const itemsKey = decodePathSegment(parts.slice(2).join("/"));
-      return this.browsePlaylist(service, itemsKey);
+      const raw = parts.slice(2).join("/");
+      const atIndex = raw.indexOf("@");
+      if (atIndex === -1) {
+        return this.browsePlaylist(service, decodePathSegment(raw), 0);
+      }
+      const itemsKey = decodePathSegment(raw.slice(0, atIndex));
+      const offset = parseInt(raw.slice(atIndex + 1), 10) || 0;
+      return this.browsePlaylist(service, itemsKey, offset);
     }
 
     throw new Error(`Unknown browse URI: ${uri}`);
@@ -238,16 +271,64 @@ export class VolumioAdapter {
     };
   }
 
-  private async browseArtists(service: PlexService): Promise<NavigationPage> {
-    const artists = await service.getAllArtists();
+  private async browseArtists(service: PlexService, pagination: PaginationState): Promise<NavigationPage> {
+    const libraries = await service.getLibraries();
+    let libraryKey = pagination.libraryKey;
+    if (libraryKey === null) {
+      libraryKey = libraries[0]?.id ?? null;
+      if (!libraryKey) {
+        return { navigation: { prev: { uri: "plex" }, lists: [{ title: "Artists", icon: "fa fa-microphone", availableListViews: ["list", "grid"], items: [] }] } };
+      }
+    }
 
-    const items: NavigationListItem[] = artists.map((artist) => ({
+    const result = await service.getArtistsPaginated(libraryKey, pagination.offset, this.pageSize);
+
+    const items: NavigationListItem[] = [];
+
+    if (pagination.offset > 0) {
+      const prevOffset = Math.max(0, pagination.offset - this.pageSize);
+      const prevUri = prevOffset === 0
+        ? "plex/artists"
+        : `plex/artists@${libraryKey}:${prevOffset}`;
+      items.push({
+        service: SERVICE_NAME,
+        type: "item",
+        title: "Previous page",
+        uri: prevUri,
+        icon: "fa fa-arrow-circle-up",
+      });
+    }
+
+    items.push(...result.items.map((artist) => ({
       service: SERVICE_NAME,
-      type: "folder",
+      type: "folder" as const,
       title: artist.title,
       albumart: artist.artworkUrl ? service.getArtworkUrl(artist.artworkUrl) : undefined,
       uri: `plex/artist/${encodePathSegment(artist.albumsKey)}`,
-    }));
+    })));
+
+    const nextOffset = pagination.offset + result.items.length;
+    if (nextOffset < result.totalSize) {
+      items.push({
+        service: SERVICE_NAME,
+        type: "item",
+        title: "Load more...",
+        uri: `plex/artists@${libraryKey}:${nextOffset}`,
+        icon: "fa fa-arrow-circle-down",
+      });
+    } else {
+      const currentLibIndex = libraries.findIndex((l) => l.id === libraryKey);
+      const nextLib = libraries[currentLibIndex + 1];
+      if (nextLib) {
+        items.push({
+          service: SERVICE_NAME,
+          type: "item",
+          title: "Load more...",
+          uri: `plex/artists@${nextLib.id}:0`,
+          icon: "fa fa-arrow-circle-down",
+        });
+      }
+    }
 
     return {
       navigation: {
@@ -326,17 +407,65 @@ export class VolumioAdapter {
     };
   }
 
-  private async browseAlbums(service: PlexService): Promise<NavigationPage> {
-    const albums = await service.getAllAlbums();
+  private async browseAlbums(service: PlexService, pagination: PaginationState): Promise<NavigationPage> {
+    const libraries = await service.getLibraries();
+    let libraryKey = pagination.libraryKey;
+    if (libraryKey === null) {
+      libraryKey = libraries[0]?.id ?? null;
+      if (!libraryKey) {
+        return { navigation: { prev: { uri: "plex" }, lists: [{ title: "Albums", availableListViews: ["list", "grid"], items: [] }] } };
+      }
+    }
 
-    const items: NavigationListItem[] = albums.map((album) => ({
+    const result = await service.getAlbumsPaginated(libraryKey, pagination.offset, this.pageSize);
+
+    const items: NavigationListItem[] = [];
+
+    if (pagination.offset > 0) {
+      const prevOffset = Math.max(0, pagination.offset - this.pageSize);
+      const prevUri = prevOffset === 0
+        ? "plex/albums"
+        : `plex/albums@${libraryKey}:${prevOffset}`;
+      items.push({
+        service: SERVICE_NAME,
+        type: "item",
+        title: "Previous page",
+        uri: prevUri,
+        icon: "fa fa-arrow-circle-up",
+      });
+    }
+
+    items.push(...result.items.map((album) => ({
       service: SERVICE_NAME,
-      type: "folder",
+      type: "folder" as const,
       title: album.title,
       artist: album.artist,
       albumart: album.artworkUrl ? service.getArtworkUrl(album.artworkUrl) : undefined,
       uri: `plex/album/${encodePathSegment(album.trackListKey)}`,
-    }));
+    })));
+
+    const nextOffset = pagination.offset + result.items.length;
+    if (nextOffset < result.totalSize) {
+      items.push({
+        service: SERVICE_NAME,
+        type: "item",
+        title: "Load more...",
+        uri: `plex/albums@${libraryKey}:${nextOffset}`,
+        icon: "fa fa-arrow-circle-down",
+      });
+    } else {
+      const currentLibIndex = libraries.findIndex((l) => l.id === libraryKey);
+      const nextLib = libraries[currentLibIndex + 1];
+      if (nextLib) {
+        items.push({
+          service: SERVICE_NAME,
+          type: "item",
+          title: "Load more...",
+          uri: `plex/albums@${nextLib.id}:0`,
+          icon: "fa fa-arrow-circle-down",
+        });
+      }
+    }
 
     return {
       navigation: {
@@ -409,12 +538,26 @@ export class VolumioAdapter {
     };
   }
 
-  private async browsePlaylist(service: PlexService, itemsKey: string): Promise<NavigationPage> {
-    const tracks = await service.getPlaylistTracks(itemsKey);
+  private async browsePlaylist(service: PlexService, itemsKey: string, offset: number): Promise<NavigationPage> {
+    const result = await service.getPlaylistTracksPaginated(itemsKey, offset, this.pageSize);
 
     const items: NavigationListItem[] = [];
 
-    if (this.shuffleEnabled) {
+    if (offset > 0) {
+      const prevOffset = Math.max(0, offset - this.pageSize);
+      const prevUri = prevOffset === 0
+        ? `plex/playlist/${encodePathSegment(itemsKey)}`
+        : `plex/playlist/${encodePathSegment(itemsKey)}@${prevOffset}`;
+      items.push({
+        service: SERVICE_NAME,
+        type: "item",
+        title: "Previous page",
+        uri: prevUri,
+        icon: "fa fa-arrow-circle-up",
+      });
+    }
+
+    if (this.shuffleEnabled && offset === 0) {
       items.push({
         service: SERVICE_NAME,
         type: "folder",
@@ -424,7 +567,18 @@ export class VolumioAdapter {
       });
     }
 
-    items.push(...tracks.map((track) => this.trackToNavItem(service, track)));
+    items.push(...result.items.map((track) => this.trackToNavItem(service, track)));
+
+    const nextOffset = offset + result.items.length;
+    if (nextOffset < result.totalSize) {
+      items.push({
+        service: SERVICE_NAME,
+        type: "item",
+        title: "Load more...",
+        uri: `plex/playlist/${encodePathSegment(itemsKey)}@${nextOffset}`,
+        icon: "fa fa-arrow-circle-down",
+      });
+    }
 
     return {
       navigation: {

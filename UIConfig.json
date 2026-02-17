@@ -64,7 +64,7 @@
       },
       "saveButton": {
         "label": "TRANSLATE.SAVE",
-        "data": ["shuffle"]
+        "data": ["shuffle", "pageSize"]
       },
       "content": [
         {
@@ -74,6 +74,14 @@
           "doc": "TRANSLATE.PLEX_SHUFFLE_DOC",
           "label": "TRANSLATE.PLEX_SHUFFLE",
           "value": false
+        },
+        {
+          "id": "pageSize",
+          "type": "number",
+          "element": "input",
+          "doc": "TRANSLATE.PLEX_PAGE_SIZE_DOC",
+          "label": "TRANSLATE.PLEX_PAGE_SIZE",
+          "value": 100
         }
       ]
     }

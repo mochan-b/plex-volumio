@@ -66,6 +66,13 @@ export interface Track {
   streamKey: string;
 }
 
+/** A page of results from a paginated query. */
+export interface PaginatedResult<T> {
+  items: T[];
+  totalSize: number;
+  offset: number;
+}
+
 // ── Raw Plex API response shapes ─────────────────────────────────────
 // These mirror the JSON structure returned by the Plex Media Server API.
 // All Plex responses wrap their payload in a MediaContainer object.
@@ -97,6 +104,8 @@ export interface RawPlaylistMetadata {
 export interface RawArtistResponse {
   MediaContainer: {
     size: number;
+    /** Total items available across all pages (present when using pagination params). */
+    totalSize?: number;
     Metadata: RawArtistMetadata[];
   };
 }
@@ -136,6 +145,8 @@ export interface RawDirectory {
 export interface RawAlbumResponse {
   MediaContainer: {
     size: number;
+    /** Total items available across all pages (present when using pagination params). */
+    totalSize?: number;
     Metadata: RawAlbumMetadata[];
   };
 }
@@ -159,6 +170,8 @@ export interface RawAlbumMetadata {
 export interface RawTrackResponse {
   MediaContainer: {
     size: number;
+    /** Total items available across all pages (present when using pagination params). */
+    totalSize?: number;
     Metadata: RawTrackMetadata[];
   };
 }

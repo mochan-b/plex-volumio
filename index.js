@@ -23,8 +23,9 @@ ControllerPlex.prototype.onVolumioStart = function () {
   var token = this.config.get('token') || '';
   var https = this.config.get('https') || false;
   var shuffle = this.config.get('shuffle') || false;
+  var pageSize = this.config.get('pageSize') || 100;
 
-  this._initAdapter(host, port, token, https, shuffle);
+  this._initAdapter(host, port, token, https, shuffle, pageSize);
 
   return libQ.resolve();
 };
@@ -65,6 +66,7 @@ ControllerPlex.prototype.getUIConfig = function () {
       uiconf.sections[0].content[2].value = self.config.get('token') || '';
       uiconf.sections[0].content[3].value = self.config.get('https') || false;
       uiconf.sections[1].content[0].value = self.config.get('shuffle') || false;
+      uiconf.sections[1].content[1].value = self.config.get('pageSize') || 100;
       defer.resolve(uiconf);
     })
     .fail(function (error) {
@@ -99,7 +101,8 @@ ControllerPlex.prototype.saveConfig = function (data) {
   this.config.set('https', https);
 
   var shuffle = this.config.get('shuffle') || false;
-  this._initAdapter(host, port, token, https, shuffle);
+  var pageSize = this.config.get('pageSize') || 100;
+  this._initAdapter(host, port, token, https, shuffle, pageSize);
 
   this.commandRouter.pushToastMessage('success', 'Plex', 'Configuration saved');
   return libQ.resolve();
@@ -111,14 +114,20 @@ ControllerPlex.prototype.saveOptions = function (data) {
   var shuffle = (data.shuffle && data.shuffle.value !== undefined) ? data.shuffle.value : data.shuffle;
   shuffle = !!shuffle;
 
+  var pageSize = (data.pageSize && data.pageSize.value !== undefined) ? data.pageSize.value : data.pageSize;
+  pageSize = Number(pageSize) || 100;
+  if (pageSize < 10) pageSize = 10;
+  if (pageSize > 1000) pageSize = 1000;
+
   this.config.set('shuffle', shuffle);
+  this.config.set('pageSize', pageSize);
 
   var host = this.config.get('host') || 'localhost';
   var port = this.config.get('port') || 32400;
   var token = this.config.get('token') || '';
   var https = this.config.get('https') || false;
 
-  this._initAdapter(host, port, token, https, shuffle);
+  this._initAdapter(host, port, token, https, shuffle, pageSize);
 
   this.commandRouter.pushToastMessage('success', 'Plex', 'Options saved');
   return libQ.resolve();
@@ -204,7 +213,7 @@ ControllerPlex.prototype.search = function (query) {
 
 // ── Internal ────────────────────────────────────────────────────────
 
-ControllerPlex.prototype._initAdapter = function (host, port, token, https, shuffle) {
+ControllerPlex.prototype._initAdapter = function (host, port, token, https, shuffle, pageSize) {
   var compiled = require('./dist/index.js');
   var VolumioAdapter = compiled.VolumioAdapter;
   var PlexApiClient = compiled.PlexApiClient;
@@ -215,5 +224,5 @@ ControllerPlex.prototype._initAdapter = function (host, port, token, https, shuf
   var plexService = new PlexService(apiClient, connection);
 
   this.adapter = new VolumioAdapter(this.context, libQ);
-  this.adapter.configure(plexService, connection, { shuffle: !!shuffle });
+  this.adapter.configure(plexService, connection, { shuffle: !!shuffle, pageSize: Number(pageSize) || 100 });
 };

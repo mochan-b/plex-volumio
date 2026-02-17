@@ -3,7 +3,8 @@ import { VolumioAdapter } from "./adapter.js";
 import type { KewLib } from "./adapter.js";
 import type { PlexService, PlayableTrack } from "../plex/plex-service.js";
 import type { PlexConnection } from "../core/stream-resolver.js";
-import type { Library, Artist, Album, Track, Playlist } from "../types/index.js";
+import type { Library, Artist, Album, Track, Playlist, PaginatedResult } from "../types/index.js";
+type PaginatedTracks = PaginatedResult<Track>;
 import type {
   VolumioContext,
   VolumioCoreCommand,
@@ -119,13 +120,19 @@ function createMockPlexService(): PlexService {
     getLibraries: vi.fn<() => Promise<Library[]>>().mockResolvedValue(librariesFixture),
     getArtists: vi.fn<(k: string) => Promise<Artist[]>>().mockResolvedValue(artistsFixture),
     getAllArtists: vi.fn<() => Promise<Artist[]>>().mockResolvedValue(artistsFixture),
+    getArtistsPaginated: vi.fn<(k: string, o: number, l: number) => Promise<PaginatedResult<Artist>>>()
+      .mockResolvedValue({ items: artistsFixture, totalSize: artistsFixture.length, offset: 0 }),
     getAlbums: vi.fn<(k: string) => Promise<Album[]>>().mockResolvedValue(albumsFixture),
     getAllAlbums: vi.fn<() => Promise<Album[]>>().mockResolvedValue(albumsFixture),
+    getAlbumsPaginated: vi.fn<(k: string, o: number, l: number) => Promise<PaginatedResult<Album>>>()
+      .mockResolvedValue({ items: albumsFixture, totalSize: albumsFixture.length, offset: 0 }),
     getArtistAlbums: vi.fn<(k: string) => Promise<Album[]>>().mockResolvedValue(albumsFixture),
     getPopularTracks: vi.fn<(id: string) => Promise<Track[]>>().mockResolvedValue(tracksFixture),
     getAlbumTracks: vi.fn<(k: string) => Promise<Track[]>>().mockResolvedValue(tracksFixture),
     getPlaylists: vi.fn<() => Promise<Playlist[]>>().mockResolvedValue(playlistsFixture),
     getPlaylistTracks: vi.fn<(k: string) => Promise<Track[]>>().mockResolvedValue(tracksFixture),
+    getPlaylistTracksPaginated: vi.fn<(k: string, o: number, l: number) => Promise<PaginatedTracks>>()
+      .mockResolvedValue({ items: tracksFixture, totalSize: tracksFixture.length, offset: 0 }),
     search: vi.fn().mockResolvedValue({ tracks: tracksFixture, albums: albumsFixture, artists: artistsFixture }),
     getPlayableTrack: vi.fn<(id: string) => Promise<PlayableTrack>>().mockResolvedValue(playableTrackFixture),
     getStreamUrl: vi.fn<(k: string) => string>().mockImplementation(
@@ -270,23 +277,94 @@ describe("VolumioAdapter", () => {
   // ── Browse: artists ─────────────────────────────────────────────
 
   describe("handleBrowseUri — artists", () => {
-    it("returns all artists", async () => {
+    it("returns artists from first library when no pagination state", async () => {
       const result = (await adapter.handleBrowseUri("plex/artists")) as NavigationPage;
 
-      expect(mockService.getAllArtists).toHaveBeenCalledOnce();
+      expect(mockService.getArtistsPaginated).toHaveBeenCalledWith("1", 0, 100);
       const items = result.navigation.lists[0]!.items;
-      expect(items).toHaveLength(2);
+      // 2 artists + "Load more..." (rolls over to second library)
+      expect(items).toHaveLength(3);
       expect(items[0]!.title).toBe("Radiohead");
       expect(items[0]!.type).toBe("folder");
       expect(items[0]!.albumart).toContain("/library/metadata/500/thumb/123");
       expect(items[1]!.title).toBe("Pink Floyd");
       expect(items[1]!.albumart).toBeUndefined();
+      expect(items[2]!.title).toBe("Load more...");
+      expect(items[2]!.uri).toBe("plex/artists@3:0");
     });
 
     it("artist URIs encode the albumsKey", async () => {
       const result = (await adapter.handleBrowseUri("plex/artists")) as NavigationPage;
       const items = result.navigation.lists[0]!.items;
       expect(items[0]!.uri).toBe("plex/artist/__library__metadata__500__children");
+    });
+
+    it("shows Load more when there are more results", async () => {
+      vi.mocked(mockService.getArtistsPaginated).mockResolvedValue({
+        items: artistsFixture,
+        totalSize: 150,
+        offset: 0,
+      });
+
+      const result = (await adapter.handleBrowseUri("plex/artists")) as NavigationPage;
+      const items = result.navigation.lists[0]!.items;
+      const lastItem = items[items.length - 1]!;
+      expect(lastItem.title).toBe("Load more...");
+      expect(lastItem.uri).toBe("plex/artists@1:2");
+    });
+
+    it("rolls over to next library when current is exhausted", async () => {
+      vi.mocked(mockService.getArtistsPaginated).mockResolvedValue({
+        items: artistsFixture,
+        totalSize: 2,
+        offset: 0,
+      });
+
+      const result = (await adapter.handleBrowseUri("plex/artists@1:0")) as NavigationPage;
+      const items = result.navigation.lists[0]!.items;
+      const lastItem = items[items.length - 1]!;
+      expect(lastItem.title).toBe("Load more...");
+      expect(lastItem.uri).toBe("plex/artists@3:0");
+    });
+
+    it("fetches with correct offset from paginated URI", async () => {
+      await adapter.handleBrowseUri("plex/artists@1:100");
+      expect(mockService.getArtistsPaginated).toHaveBeenCalledWith("1", 100, 100);
+    });
+
+    it("shows Previous page on subsequent pages", async () => {
+      const result = (await adapter.handleBrowseUri("plex/artists@1:100")) as NavigationPage;
+      const items = result.navigation.lists[0]!.items;
+      expect(items[0]!.title).toBe("Previous page");
+      expect(items[0]!.uri).toBe("plex/artists");
+      expect(items[0]!.icon).toBe("fa fa-arrow-circle-up");
+    });
+
+    it("Previous page links to intermediate page when not near the start", async () => {
+      const result = (await adapter.handleBrowseUri("plex/artists@1:200")) as NavigationPage;
+      const items = result.navigation.lists[0]!.items;
+      expect(items[0]!.title).toBe("Previous page");
+      expect(items[0]!.uri).toBe("plex/artists@1:100");
+    });
+
+    it("omits Previous page on first page", async () => {
+      const result = (await adapter.handleBrowseUri("plex/artists")) as NavigationPage;
+      const items = result.navigation.lists[0]!.items;
+      expect(items[0]!.title).not.toBe("Previous page");
+    });
+
+    it("omits Load more on last page of last library", async () => {
+      // Only one library
+      vi.mocked(mockService.getLibraries).mockResolvedValue([librariesFixture[0]!]);
+      vi.mocked(mockService.getArtistsPaginated).mockResolvedValue({
+        items: artistsFixture,
+        totalSize: 2,
+        offset: 0,
+      });
+
+      const result = (await adapter.handleBrowseUri("plex/artists")) as NavigationPage;
+      const items = result.navigation.lists[0]!.items;
+      expect(items.every((i) => i.title !== "Load more...")).toBe(true);
     });
   });
 
@@ -322,23 +400,46 @@ describe("VolumioAdapter", () => {
   // ── Browse: albums ────────────────────────────────────────────
 
   describe("handleBrowseUri — albums", () => {
-    it("returns all albums", async () => {
+    it("returns albums from first library when no pagination state", async () => {
       const result = (await adapter.handleBrowseUri("plex/albums")) as NavigationPage;
 
-      expect(mockService.getAllAlbums).toHaveBeenCalledOnce();
+      expect(mockService.getAlbumsPaginated).toHaveBeenCalledWith("1", 0, 100);
       const items = result.navigation.lists[0]!.items;
-      expect(items).toHaveLength(2);
+      // 2 albums + "Load more..." (rolls over to second library)
+      expect(items).toHaveLength(3);
       expect(items[0]!.title).toBe("OK Computer");
       expect(items[0]!.artist).toBe("Radiohead");
       expect(items[0]!.type).toBe("folder");
       expect(items[0]!.albumart).toContain("/library/metadata/1001/thumb/123");
       expect(items[1]!.albumart).toBeUndefined();
+      expect(items[2]!.title).toBe("Load more...");
     });
 
     it("album URIs encode the trackListKey", async () => {
       const result = (await adapter.handleBrowseUri("plex/albums")) as NavigationPage;
       const items = result.navigation.lists[0]!.items;
       expect(items[0]!.uri).toBe("plex/album/__library__metadata__1001__children");
+    });
+
+    it("shows Load more when there are more results", async () => {
+      vi.mocked(mockService.getAlbumsPaginated).mockResolvedValue({
+        items: albumsFixture,
+        totalSize: 500,
+        offset: 0,
+      });
+
+      const result = (await adapter.handleBrowseUri("plex/albums")) as NavigationPage;
+      const items = result.navigation.lists[0]!.items;
+      const lastItem = items[items.length - 1]!;
+      expect(lastItem.title).toBe("Load more...");
+      expect(lastItem.uri).toBe("plex/albums@1:2");
+    });
+
+    it("shows Previous page on subsequent pages", async () => {
+      const result = (await adapter.handleBrowseUri("plex/albums@1:100")) as NavigationPage;
+      const items = result.navigation.lists[0]!.items;
+      expect(items[0]!.title).toBe("Previous page");
+      expect(items[0]!.uri).toBe("plex/albums");
     });
   });
 
@@ -390,7 +491,7 @@ describe("VolumioAdapter", () => {
       const uri = "plex/playlist/__playlists__5001__items";
       const result = (await adapter.handleBrowseUri(uri)) as NavigationPage;
 
-      expect(mockService.getPlaylistTracks).toHaveBeenCalledWith("/playlists/5001/items");
+      expect(mockService.getPlaylistTracksPaginated).toHaveBeenCalledWith("/playlists/5001/items", 0, 100);
       const items = result.navigation.lists[0]!.items;
       expect(items).toHaveLength(2);
       expect(items[0]!.title).toBe("Airbag");
@@ -401,6 +502,48 @@ describe("VolumioAdapter", () => {
       const uri = "plex/playlist/__playlists__5001__items";
       const result = (await adapter.handleBrowseUri(uri)) as NavigationPage;
       expect(result.navigation.prev.uri).toBe("plex/playlists");
+    });
+
+    it("shows Load more when there are more tracks", async () => {
+      vi.mocked(mockService.getPlaylistTracksPaginated).mockResolvedValue({
+        items: tracksFixture,
+        totalSize: 200,
+        offset: 0,
+      });
+
+      const uri = "plex/playlist/__playlists__5001__items";
+      const result = (await adapter.handleBrowseUri(uri)) as NavigationPage;
+      const items = result.navigation.lists[0]!.items;
+      const lastItem = items[items.length - 1]!;
+      expect(lastItem.title).toBe("Load more...");
+      expect(lastItem.uri).toBe("plex/playlist/__playlists__5001__items@2");
+    });
+
+    it("fetches with correct offset from paginated URI", async () => {
+      const uri = "plex/playlist/__playlists__5001__items@50";
+      await adapter.handleBrowseUri(uri);
+      expect(mockService.getPlaylistTracksPaginated).toHaveBeenCalledWith("/playlists/5001/items", 50, 100);
+    });
+
+    it("shows Previous page on subsequent pages", async () => {
+      const uri = "plex/playlist/__playlists__5001__items@50";
+      const result = (await adapter.handleBrowseUri(uri)) as NavigationPage;
+      const items = result.navigation.lists[0]!.items;
+      expect(items[0]!.title).toBe("Previous page");
+      expect(items[0]!.uri).toBe("plex/playlist/__playlists__5001__items");
+    });
+
+    it("omits Load more on last page", async () => {
+      vi.mocked(mockService.getPlaylistTracksPaginated).mockResolvedValue({
+        items: tracksFixture,
+        totalSize: 2,
+        offset: 0,
+      });
+
+      const uri = "plex/playlist/__playlists__5001__items";
+      const result = (await adapter.handleBrowseUri(uri)) as NavigationPage;
+      const items = result.navigation.lists[0]!.items;
+      expect(items.every((i) => i.title !== "Load more...")).toBe(true);
     });
   });
 
@@ -414,7 +557,7 @@ describe("VolumioAdapter", () => {
     });
 
     it("propagates PlexService errors", async () => {
-      vi.mocked(mockService.getAllArtists).mockRejectedValue(new Error("Network failure"));
+      vi.mocked(mockService.getArtistsPaginated).mockRejectedValue(new Error("Network failure"));
       await expect(adapter.handleBrowseUri("plex/artists")).rejects.toThrow("Network failure");
     });
   });

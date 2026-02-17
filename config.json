@@ -18,5 +18,9 @@
   "shuffle": {
     "type": "boolean",
     "value": false
+  },
+  "pageSize": {
+    "type": "number",
+    "value": 100
   }
 }

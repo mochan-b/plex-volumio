@@ -7,7 +7,7 @@
  */
 
 import type { PlexApiClient } from "./api-client.js";
-import type { Library, Artist, Album, Track, Playlist } from "../types/index.js";
+import type { Library, Artist, Album, Track, Playlist, PaginatedResult } from "../types/index.js";
 import { parseLibraries, parseArtists, parseAlbums, parseTracks, parsePlaylists } from "../core/parser.js";
 import { buildStreamUrl, buildResourceUrl } from "../core/stream-resolver.js";
 import type { PlexConnection } from "../core/stream-resolver.js";
@@ -40,6 +40,20 @@ export class PlexService {
     return parseArtists(raw);
   }
 
+  /** Get a page of artists in a library section. */
+  async getArtistsPaginated(
+    libraryKey: string,
+    offset: number,
+    limit: number,
+  ): Promise<PaginatedResult<Artist>> {
+    const raw = await this.apiClient.getArtists(libraryKey, { offset, limit });
+    return {
+      items: parseArtists(raw),
+      totalSize: raw.MediaContainer.totalSize ?? raw.MediaContainer.size,
+      offset,
+    };
+  }
+
   /** Get all artists across all music libraries. */
   async getAllArtists(): Promise<Artist[]> {
     const libraries = await this.getLibraries();
@@ -53,6 +67,20 @@ export class PlexService {
   async getAlbums(libraryKey: string): Promise<Album[]> {
     const raw = await this.apiClient.getAlbums(libraryKey);
     return parseAlbums(raw);
+  }
+
+  /** Get a page of albums in a library section. */
+  async getAlbumsPaginated(
+    libraryKey: string,
+    offset: number,
+    limit: number,
+  ): Promise<PaginatedResult<Album>> {
+    const raw = await this.apiClient.getAlbums(libraryKey, { offset, limit });
+    return {
+      items: parseAlbums(raw),
+      totalSize: raw.MediaContainer.totalSize ?? raw.MediaContainer.size,
+      offset,
+    };
   }
 
   /** Get all albums across all music libraries. */
@@ -92,6 +120,20 @@ export class PlexService {
   async getPlaylistTracks(itemsKey: string): Promise<Track[]> {
     const raw = await this.apiClient.getPlaylistItems(itemsKey);
     return parseTracks(raw);
+  }
+
+  /** Get a page of tracks in a playlist. */
+  async getPlaylistTracksPaginated(
+    itemsKey: string,
+    offset: number,
+    limit: number,
+  ): Promise<PaginatedResult<Track>> {
+    const raw = await this.apiClient.getPlaylistItems(itemsKey, { offset, limit });
+    return {
+      items: parseTracks(raw),
+      totalSize: raw.MediaContainer.totalSize ?? raw.MediaContainer.size,
+      offset,
+    };
   }
 
   /** Search for tracks, albums, and artists matching a query. */

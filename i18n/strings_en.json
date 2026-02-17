@@ -12,5 +12,7 @@
   "PLEX_OPTIONS": "Options",
   "PLEX_SHUFFLE": "Shuffle",
   "PLEX_SHUFFLE_DOC": "Show a Shuffle item at the top of every album and playlist. Clicking it displays the tracks in a randomized order.",
+  "PLEX_PAGE_SIZE": "Page Size",
+  "PLEX_PAGE_SIZE_DOC": "Number of items to load per page when browsing artists, albums, and playlists. Lower values load faster, higher values show more items at once.",
   "SAVE": "Save"
 }
