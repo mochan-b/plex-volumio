@@ -9,10 +9,15 @@
   "PLEX_TOKEN_DOC": "Your Plex authentication token. See https://support.plex.tv/articles/204059436/ for instructions.",
   "PLEX_HTTPS": "HTTPS",
   "PLEX_HTTPS_DOC": "Enable HTTPS for connecting to your Plex server. Connection fails if your server does not support HTTPS.",
-  "PLEX_OPTIONS": "Options",
+  "PLEX_BROWSE": "Browse",
+  "PLEX_PLAYBACK": "Playback",
   "PLEX_SHUFFLE": "Shuffle",
   "PLEX_SHUFFLE_DOC": "Show a Shuffle item at the top of every album and playlist. Clicking it displays the tracks in a randomized order.",
   "PLEX_PAGE_SIZE": "Page Size",
   "PLEX_PAGE_SIZE_DOC": "Number of items to load per page when browsing artists, albums, and playlists. Lower values load faster, higher values show more items at once.",
+  "PLEX_GAPLESS_PLAYBACK": "Gapless Playback",
+  "PLEX_GAPLESS_PLAYBACK_DOC": "Pre-buffer the next track before the current one ends, eliminating silence between tracks.",
+  "PLEX_CROSSFADE_DURATION": "Crossfade Duration (seconds)",
+  "PLEX_CROSSFADE_DURATION_DOC": "Overlap audio between tracks. Set to 0 for no crossfade (pure gapless). Max 12 seconds.",
   "SAVE": "Save"
 }

@@ -22,5 +22,13 @@
   "pageSize": {
     "type": "number",
     "value": 100
+  },
+  "gaplessPlayback": {
+    "type": "boolean",
+    "value": true
+  },
+  "crossfadeDuration": {
+    "type": "number",
+    "value": 0
   }
 }

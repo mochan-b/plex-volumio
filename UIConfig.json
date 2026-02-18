@@ -53,10 +53,10 @@
       ]
     },
     {
-      "id": "plex_options",
+      "id": "plex_browse",
       "element": "section",
-      "label": "TRANSLATE.PLEX_OPTIONS",
-      "icon": "fa-cog",
+      "label": "TRANSLATE.PLEX_BROWSE",
+      "icon": "fa-music",
       "onSave": {
         "type": "controller",
         "endpoint": "music_service/plex",
@@ -82,6 +82,40 @@
           "doc": "TRANSLATE.PLEX_PAGE_SIZE_DOC",
           "label": "TRANSLATE.PLEX_PAGE_SIZE",
           "value": 100
+        }
+      ]
+    },
+    {
+      "id": "plex_playback",
+      "element": "section",
+      "label": "TRANSLATE.PLEX_PLAYBACK",
+      "icon": "fa-play",
+      "onSave": {
+        "type": "controller",
+        "endpoint": "music_service/plex",
+        "method": "saveOptions"
+      },
+      "saveButton": {
+        "label": "TRANSLATE.SAVE",
+        "data": ["gaplessPlayback", "crossfadeDuration"]
+      },
+      "content": [
+        {
+          "id": "gaplessPlayback",
+          "type": "switch",
+          "element": "switch",
+          "doc": "TRANSLATE.PLEX_GAPLESS_PLAYBACK_DOC",
+          "label": "TRANSLATE.PLEX_GAPLESS_PLAYBACK",
+          "value": true
+        },
+        {
+          "id": "crossfadeDuration",
+          "type": "number",
+          "element": "input",
+          "doc": "TRANSLATE.PLEX_CROSSFADE_DURATION_DOC",
+          "label": "TRANSLATE.PLEX_CROSSFADE_DURATION",
+          "value": 0,
+          "visibleIf": { "field": "gaplessPlayback", "value": true }
         }
       ]
     }

@@ -38,6 +38,7 @@ export interface VolumioCoreCommand {
 export interface VolumioStateMachine {
   setConsumeUpdateService(service: string | undefined, state?: boolean, remove?: boolean): void;
   previous(): PromiseLike<unknown>;
+  prefetchDone: boolean;
 }
 
 /** Volumio plugin manager — used to get references to other plugins. */

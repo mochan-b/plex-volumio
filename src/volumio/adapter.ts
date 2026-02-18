@@ -74,6 +74,8 @@ export class VolumioAdapter {
   private connection: PlexConnection | null = null;
   private shuffleEnabled = false;
   private pageSize = DEFAULT_PAGE_SIZE;
+  private gaplessPlayback = true;
+  private crossfadeDuration = 0;
 
   private originalServicePushState: VolumioCoreCommand["servicePushState"] | null = null;
 
@@ -134,11 +136,13 @@ export class VolumioAdapter {
   // ── Configure (for external config injection in tests/setup) ───────
 
   /** Set up the PlexService and connection from external config. */
-  configure(plexService: PlexService, connection: PlexConnection, options?: { shuffle?: boolean; pageSize?: number }): void {
+  configure(plexService: PlexService, connection: PlexConnection, options?: { shuffle?: boolean; pageSize?: number; gaplessPlayback?: boolean; crossfadeDuration?: number }): void {
     this.plexService = plexService;
     this.connection = connection;
     this.shuffleEnabled = options?.shuffle ?? false;
     this.pageSize = options?.pageSize ?? DEFAULT_PAGE_SIZE;
+    this.gaplessPlayback = options?.gaplessPlayback ?? true;
+    this.crossfadeDuration = options?.crossfadeDuration ?? 0;
   }
 
   // ── Browse ─────────────────────────────────────────────────────────
@@ -753,6 +757,10 @@ export class VolumioAdapter {
     await mpdPlugin.sendMpdCommand("stop", []);
     await mpdPlugin.sendMpdCommand("clear", []);
 
+    // Set crossfade (0 = disabled; only applied when gapless is on)
+    const xfade = this.gaplessPlayback ? this.crossfadeDuration : 0;
+    await mpdPlugin.sendMpdCommand(`crossfade ${xfade}`, []);
+
     // Try load first (handles playlists/streams), fall back to addid
     let songId: string | undefined;
     try {
@@ -772,6 +780,38 @@ export class VolumioAdapter {
     // Set consume mode and play
     this.commandRouter.stateMachine.setConsumeUpdateService("mpd", true, false);
     await mpdPlugin.sendMpdCommand("play", []);
+  }
+
+  /** Pre-buffer the next track into the MPD queue for gapless playback. */
+  prefetch(track: QueueItem): unknown {
+    this.logger.info(`[Plex] prefetch: ${track.name}`);
+    return jsPromiseToKew(this.libQ, this._prefetch(track));
+  }
+
+  private async _prefetch(track: QueueItem): Promise<void> {
+    if (!this.gaplessPlayback) {
+      this.commandRouter.stateMachine.prefetchDone = false;
+      return;
+    }
+
+    const mpdPlugin = this.getMpdPlugin();
+    const streamUrl = this.resolveStreamUrl(track.uri);
+
+    try {
+      const resp = (await mpdPlugin.sendMpdCommand(`addid "${streamUrl}"`, [])) as { Id?: string };
+      const songId = resp?.Id;
+
+      if (songId !== undefined) {
+        await this.mpdAddTags(mpdPlugin, songId, track);
+      }
+
+      await mpdPlugin.sendMpdCommand("consume 1", []);
+      this.commandRouter.stateMachine.prefetchDone = true;
+      this.logger.info(`[Plex] Prefetched next track: ${track.name}`);
+    } catch (err) {
+      this.logger.error(`[Plex] Prefetch failed: ${err}`);
+      this.commandRouter.stateMachine.prefetchDone = false;
+    }
   }
 
   /** Set title/artist/album tags on an MPD queue entry by song ID. */
