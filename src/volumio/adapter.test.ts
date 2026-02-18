@@ -92,6 +92,9 @@ const tracksFixture: Track[] = [
     duration: 282000,
     artworkUrl: "/library/metadata/1001/thumb/123",
     streamKey: "/library/parts/2001/file.flac",
+    trackType: "flac",
+    samplerate: "44.1 kHz",
+    bitdepth: "24 bit",
   },
   {
     id: "2002",
@@ -101,6 +104,9 @@ const tracksFixture: Track[] = [
     duration: 383000,
     artworkUrl: null,
     streamKey: "/library/parts/2002/file.flac",
+    trackType: null,
+    samplerate: null,
+    bitdepth: null,
   },
 ];
 

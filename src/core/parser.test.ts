@@ -149,7 +149,26 @@ describe("parseTracks", () => {
       duration: 282000,
       artworkUrl: "/library/metadata/1001/thumb/1609459200",
       streamKey: "/library/parts/2001/1234567/file.flac",
+      trackType: "flac",
+      samplerate: "44.1 kHz",
+      bitdepth: "24 bit",
     });
+  });
+
+  it("extracts audio quality fields from Media[0]", () => {
+    const result = parseTracks(tracksFixture as RawTrackResponse);
+    // Track with full quality data
+    expect(result[0]!.trackType).toBe("flac");
+    expect(result[0]!.samplerate).toBe("44.1 kHz");
+    expect(result[0]!.bitdepth).toBe("24 bit");
+    // Track with codec but no bitDepth/samplingRate
+    expect(result[1]!.trackType).toBe("mp3");
+    expect(result[1]!.samplerate).toBeNull();
+    expect(result[1]!.bitdepth).toBeNull();
+    // Track with 16-bit / 48 kHz
+    expect(result[2]!.trackType).toBe("flac");
+    expect(result[2]!.samplerate).toBe("48 kHz");
+    expect(result[2]!.bitdepth).toBe("16 bit");
   });
 
   it("handles missing artwork", () => {
@@ -194,5 +213,8 @@ describe("parseTracks", () => {
     };
     const result = parseTracks(badTrack);
     expect(result[0]!.streamKey).toBe("");
+    expect(result[0]!.trackType).toBeNull();
+    expect(result[0]!.samplerate).toBeNull();
+    expect(result[0]!.bitdepth).toBeNull();
   });
 });

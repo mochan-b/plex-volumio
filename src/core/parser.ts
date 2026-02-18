@@ -101,13 +101,23 @@ export function parseAlbums(raw: RawAlbumResponse): Album[] {
  */
 export function parseTracks(raw: RawTrackResponse): Track[] {
   const metadata = raw.MediaContainer.Metadata ?? [];
-  return metadata.map((item) => ({
-    id: item.ratingKey,
-    title: item.title,
-    artist: item.grandparentTitle, // Plex: track's grandparent = artist
-    album: item.parentTitle, // Plex: track's parent = album
-    duration: item.duration,
-    artworkUrl: item.thumb ?? null,
-    streamKey: item.Media?.[0]?.Part?.[0]?.key ?? "", // First media file's path
-  }));
+  return metadata.map((item) => {
+    const media = item.Media?.[0];
+    const part = media?.Part?.[0];
+    // bitDepth and samplingRate live on the Stream element inside Part, not on Media.
+    // For audio-only files there is exactly one Stream; streamType 2 = audio.
+    const audioStream = part?.Stream?.find((s) => s.streamType === 2) ?? part?.Stream?.[0];
+    return {
+      id: item.ratingKey,
+      title: item.title,
+      artist: item.grandparentTitle, // Plex: track's grandparent = artist
+      album: item.parentTitle, // Plex: track's parent = album
+      duration: item.duration,
+      artworkUrl: item.thumb ?? null,
+      streamKey: part?.key ?? "", // First media file's path
+      trackType: media?.audioCodec ?? media?.container ?? null,
+      samplerate: audioStream?.samplingRate != null ? `${audioStream.samplingRate / 1000} kHz` : null,
+      bitdepth: audioStream?.bitDepth != null ? `${audioStream.bitDepth} bit` : null,
+    };
+  });
 }

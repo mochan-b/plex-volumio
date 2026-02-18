@@ -64,6 +64,12 @@ export interface Track {
   artworkUrl: string | null;
   /** Plex part key used to build the streaming URL (e.g. "/library/parts/2001/1234567/file.flac") */
   streamKey: string;
+  /** Audio codec used as Volumio trackType (e.g. "flac", "mp3", "alac"), null if unavailable */
+  trackType: string | null;
+  /** Sample rate formatted for display (e.g. "44.1 kHz"), null if unavailable */
+  samplerate: string | null;
+  /** Bit depth formatted for display (e.g. "24 bit"), null if unavailable */
+  bitdepth: string | null;
 }
 
 /** A page of results from a paginated query. */
@@ -206,8 +212,22 @@ export interface RawTrackMetadata {
     Part: Array<{
       /** File path key used to build the streaming URL */
       key: string;
+      /** Audio streams nested inside this part (streamType=2 is audio) */
+      Stream?: Array<{
+        /** 1=video, 2=audio, 3=subtitle */
+        streamType?: number;
+        /** Bit depth in bits per sample (e.g. 16, 24) */
+        bitDepth?: number;
+        /** Sample rate in Hz (e.g. 44100, 48000, 96000) */
+        samplingRate?: number;
+        [key: string]: unknown;
+      }>;
       [key: string]: unknown;
     }>;
+    /** Audio codec (e.g. "flac", "mp3", "alac") */
+    audioCodec?: string;
+    /** File container format (e.g. "flac", "mp4") */
+    container?: string;
     [key: string]: unknown;
   }>;
   [key: string]: unknown;

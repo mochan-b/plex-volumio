@@ -78,6 +78,7 @@ export class VolumioAdapter {
   private crossfadeDuration = 0;
 
   private originalServicePushState: VolumioCoreCommand["servicePushState"] | null = null;
+  private currentQuality: { trackType?: string; samplerate?: string; bitdepth?: string } = {};
 
   private readonly browseSource: BrowseSource = {
     name: "Plex",
@@ -729,7 +730,7 @@ export class VolumioAdapter {
   }
 
   private trackToQueueItem(service: PlexService, track: Track): QueueItem {
-    return {
+    const item: QueueItem = {
       uri: `plex/track/${track.id}/stream/${encodePathSegment(track.streamKey)}`,
       service: SERVICE_NAME,
       name: track.title,
@@ -739,6 +740,10 @@ export class VolumioAdapter {
       duration: Math.round(track.duration / 1000),
       type: "track",
     };
+    if (track.trackType) item.trackType = track.trackType;
+    if (track.samplerate) item.samplerate = track.samplerate;
+    if (track.bitdepth) item.bitdepth = track.bitdepth;
+    return item;
   }
 
   // ── Goto (navigate to artist/album of playing track) ───────────────
@@ -778,6 +783,13 @@ export class VolumioAdapter {
   }
 
   private async _clearAddPlayTrack(track: QueueItem): Promise<void> {
+    // Store quality metadata so the state hook can re-inject it on every MPD state push.
+    this.currentQuality = {
+      ...(track.trackType && { trackType: track.trackType }),
+      ...(track.samplerate && { samplerate: track.samplerate }),
+      ...(track.bitdepth && { bitdepth: track.bitdepth }),
+    };
+
     const mpdPlugin = this.getMpdPlugin();
     const streamUrl = this.resolveStreamUrl(track.uri);
 
@@ -997,10 +1009,11 @@ export class VolumioAdapter {
   }
 
   /**
-   * Wrap commandRouter.servicePushState so that any state containing a
-   * Plex token in its URI is sanitised before it reaches the state machine
-   * (and its logging).  MPD reports back the real stream URL it was given,
-   * so this is the only place we can intercept it.
+   * Wrap commandRouter.servicePushState so that:
+   * 1. Any Plex token in the URI is sanitised before reaching the state machine.
+   * 2. Quality metadata (trackType, samplerate, bitdepth) is re-injected on every
+   *    MPD state push — MPD echoes back the raw stream URL so this hook fires for
+   *    every playback update, but MPD does not carry our custom quality fields.
    */
   private installStateMaskHook(): void {
     if (this.originalServicePushState) return; // already installed
@@ -1009,6 +1022,7 @@ export class VolumioAdapter {
     this.commandRouter.servicePushState = (state: VolumioState, serviceName: string) => {
       if (state.uri && state.uri.includes("X-Plex-Token")) {
         state = { ...state, uri: state.uri.replace(/X-Plex-Token=[^&]+/, "X-Plex-Token=████████") };
+        state = { ...state, ...this.currentQuality };
       }
       return original(state, serviceName);
     };
