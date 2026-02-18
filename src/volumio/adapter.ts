@@ -309,7 +309,7 @@ export class VolumioAdapter {
       service: SERVICE_NAME,
       type: "folder" as const,
       title: artist.title,
-      albumart: artist.artworkUrl ? service.getArtworkUrl(artist.artworkUrl) : undefined,
+      ...(artist.artworkUrl ? { albumart: service.getArtworkUrl(artist.artworkUrl) } : {}),
       uri: `plex/artist/${encodePathSegment(artist.albumsKey)}`,
     })));
 
@@ -362,7 +362,7 @@ export class VolumioAdapter {
       type: "folder" as const,
       title: album.title,
       artist: album.artist,
-      albumart: album.artworkUrl ? service.getArtworkUrl(album.artworkUrl) : undefined,
+      ...(album.artworkUrl ? { albumart: service.getArtworkUrl(album.artworkUrl) } : {}),
       uri: `plex/album/${encodePathSegment(album.trackListKey)}`,
     }));
 
@@ -446,7 +446,7 @@ export class VolumioAdapter {
       type: "folder" as const,
       title: album.title,
       artist: album.artist,
-      albumart: album.artworkUrl ? service.getArtworkUrl(album.artworkUrl) : undefined,
+      ...(album.artworkUrl ? { albumart: service.getArtworkUrl(album.artworkUrl) } : {}),
       uri: `plex/album/${encodePathSegment(album.trackListKey)}`,
     })));
 
@@ -666,7 +666,7 @@ export class VolumioAdapter {
       title: track.title,
       artist: track.artist,
       album: track.album,
-      albumart: track.artworkUrl ? service.getArtworkUrl(track.artworkUrl) : undefined,
+      ...(track.artworkUrl ? { albumart: service.getArtworkUrl(track.artworkUrl) } : {}),
       uri: `plex/track/${track.id}`,
       duration: Math.round(track.duration / 1000),
     };
@@ -960,7 +960,7 @@ export class VolumioAdapter {
           service: SERVICE_NAME,
           type: "folder" as const,
           title: artist.title,
-          albumart: artist.artworkUrl ? service.getArtworkUrl(artist.artworkUrl) : undefined,
+          ...(artist.artworkUrl ? { albumart: service.getArtworkUrl(artist.artworkUrl) } : {}),
           uri: `plex/artist/${encodePathSegment(artist.albumsKey)}`,
         })),
       });
@@ -975,7 +975,7 @@ export class VolumioAdapter {
           type: "folder" as const,
           title: album.title,
           artist: album.artist,
-          albumart: album.artworkUrl ? service.getArtworkUrl(album.artworkUrl) : undefined,
+          ...(album.artworkUrl ? { albumart: service.getArtworkUrl(album.artworkUrl) } : {}),
           uri: `plex/album/${encodePathSegment(album.trackListKey)}`,
         })),
       });
