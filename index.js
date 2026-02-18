@@ -232,6 +232,15 @@ ControllerPlex.prototype.search = function (query) {
   return this.adapter.search(query);
 };
 
+// ── Goto ────────────────────────────────────────────────────────────
+
+ControllerPlex.prototype.goto = function (data) {
+  if (!this.adapter) {
+    return libQ.reject(new Error('Plex plugin not initialized'));
+  }
+  return this.adapter.goto(data);
+};
+
 // ── Internal ────────────────────────────────────────────────────────
 
 ControllerPlex.prototype._initAdapter = function (host, port, token, https, shuffle, pageSize, gaplessPlayback, crossfadeDuration) {

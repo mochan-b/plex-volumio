@@ -730,7 +730,7 @@ export class VolumioAdapter {
 
   private trackToQueueItem(service: PlexService, track: Track): QueueItem {
     return {
-      uri: `plex/stream/${encodePathSegment(track.streamKey)}`,
+      uri: `plex/track/${track.id}/stream/${encodePathSegment(track.streamKey)}`,
       service: SERVICE_NAME,
       name: track.title,
       artist: track.artist,
@@ -739,6 +739,34 @@ export class VolumioAdapter {
       duration: Math.round(track.duration / 1000),
       type: "track",
     };
+  }
+
+  // ── Goto (navigate to artist/album of playing track) ───────────────
+
+  /** Navigate to the artist or album browse page for the currently playing track. */
+  goto(data: { type: "album" | "artist"; uri?: string }): unknown {
+    this.logger.info(`[Plex] goto: ${data.type}`);
+    return jsPromiseToKew(this.libQ, this._goto(data));
+  }
+
+  private async _goto(data: { type: "album" | "artist"; uri?: string }): Promise<NavigationPage> {
+    const service = this.requireService();
+    const uri = data.uri ?? "";
+
+    // Extract track ID from "plex/track/{id}/stream/..."
+    const match = uri.match(/^plex\/track\/(\d+)\//);
+    if (!match) {
+      throw new Error(`Cannot navigate: track URI does not contain a track ID (uri=${uri})`);
+    }
+    const trackId = match[1]!;
+
+    const { albumBrowseKey, artistBrowseKey } = await service.getTrackBrowseKeys(trackId);
+
+    if (data.type === "album") {
+      return this._handleBrowseUri(`plex/album/${encodePathSegment(albumBrowseKey)}`);
+    } else {
+      return this._handleBrowseUri(`plex/artist/${encodePathSegment(artistBrowseKey)}`);
+    }
   }
 
   // ── Playback (delegates to MPD via consume mode) ───────────────────
@@ -829,11 +857,21 @@ export class VolumioAdapter {
   }
 
   /** Resolve a queue item URI to the actual stream URL for MPD.
-   *  Accepts both plex/stream/{key} URIs and raw stream URLs for backwards compat. */
+   *  Accepts both plex/track/{id}/stream/{key} and legacy plex/stream/{key} URIs. */
   private resolveStreamUrl(uri: string): string {
-    const prefix = "plex/stream/";
-    if (uri.startsWith(prefix)) {
-      const streamKey = decodePathSegment(uri.slice(prefix.length));
+    // New format: plex/track/{id}/stream/{encodedKey}
+    const newPrefix = "plex/track/";
+    if (uri.startsWith(newPrefix)) {
+      const streamIdx = uri.indexOf("/stream/");
+      if (streamIdx !== -1) {
+        const streamKey = decodePathSegment(uri.slice(streamIdx + "/stream/".length));
+        return this.requireService().getStreamUrl(streamKey);
+      }
+    }
+    // Legacy format: plex/stream/{encodedKey}
+    const legacyPrefix = "plex/stream/";
+    if (uri.startsWith(legacyPrefix)) {
+      const streamKey = decodePathSegment(uri.slice(legacyPrefix.length));
       return this.requireService().getStreamUrl(streamKey);
     }
     return uri;

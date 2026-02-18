@@ -108,6 +108,6 @@ export function parseTracks(raw: RawTrackResponse): Track[] {
     album: item.parentTitle, // Plex: track's parent = album
     duration: item.duration,
     artworkUrl: item.thumb ?? null,
-    streamKey: item.Media[0]?.Part[0]?.key ?? "", // First media file's path
+    streamKey: item.Media?.[0]?.Part?.[0]?.key ?? "", // First media file's path
   }));
 }

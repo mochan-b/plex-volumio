@@ -573,7 +573,7 @@ describe("VolumioAdapter", () => {
       expect(result[0]!.name).toBe("Airbag");
       expect(result[0]!.artist).toBe("Radiohead");
       expect(result[0]!.album).toBe("OK Computer");
-      expect(result[0]!.uri).toBe("plex/stream/__library__parts__2001__file.flac");
+      expect(result[0]!.uri).toBe("plex/track/2001/stream/__library__parts__2001__file.flac");
       expect(result[0]!.uri).not.toContain("Token");
       expect(result[0]!.service).toBe("plex");
       expect(result[0]!.type).toBe("track");
@@ -594,10 +594,10 @@ describe("VolumioAdapter", () => {
       expect(mockService.getPlayableTrack).not.toHaveBeenCalled();
       expect(result).toHaveLength(2);
       expect(result[0]!.name).toBe("Airbag");
-      expect(result[0]!.uri).toBe("plex/stream/__library__parts__2001__file.flac");
+      expect(result[0]!.uri).toBe("plex/track/2001/stream/__library__parts__2001__file.flac");
       expect(result[0]!.uri).not.toContain("Token");
       expect(result[1]!.name).toBe("Paranoid Android");
-      expect(result[1]!.uri).toBe("plex/stream/__library__parts__2002__file.flac");
+      expect(result[1]!.uri).toBe("plex/track/2002/stream/__library__parts__2002__file.flac");
     });
   });
 

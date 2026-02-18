@@ -193,6 +193,10 @@ export interface RawTrackMetadata {
   grandparentTitle: string;
   /** Album name — Plex stores album as the track's parent */
   parentTitle: string;
+  /** API path to fetch the album's tracks (e.g. "/library/metadata/123/children") */
+  parentKey: string;
+  /** API path to fetch the artist's albums (e.g. "/library/metadata/456/children") */
+  grandparentKey: string;
   /** Duration in milliseconds */
   duration: number;
   /** Relative thumbnail path, absent when track/album has no artwork */

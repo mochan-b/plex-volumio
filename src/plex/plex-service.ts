@@ -168,6 +168,23 @@ export class PlexService {
     return { ...track, streamUrl };
   }
 
+  /** Get the album and artist browse keys for a track by its ratingKey.
+   *
+   * Plex's parentKey/grandparentKey may or may not include "/children" depending
+   * on the server version. We normalize them to always be the children endpoint,
+   * which is what our browse handlers expect. */
+  async getTrackBrowseKeys(trackId: string): Promise<{ albumBrowseKey: string; artistBrowseKey: string }> {
+    const raw = await this.apiClient.getTrackMetadata(trackId);
+    const metadata = raw.MediaContainer.Metadata?.[0];
+    if (!metadata) throw new Error(`Track not found: ${trackId}`);
+    const toChildrenPath = (key: string) =>
+      key.endsWith("/children") ? key : `${key}/children`;
+    return {
+      albumBrowseKey: toChildrenPath(metadata.parentKey),
+      artistBrowseKey: toChildrenPath(metadata.grandparentKey),
+    };
+  }
+
   /** Build a stream URL from a track's streamKey. */
   getStreamUrl(streamKey: string): string {
     return buildStreamUrl({ ...this.connection, trackKey: streamKey });
