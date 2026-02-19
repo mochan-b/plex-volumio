@@ -17,7 +17,9 @@
   "PLEX_PAGE_SIZE_DOC": "Number of items to load per page when browsing artists, albums, and playlists. Lower values load faster, higher values show more items at once.",
   "PLEX_GAPLESS_PLAYBACK": "Gapless Playback",
   "PLEX_GAPLESS_PLAYBACK_DOC": "Pre-buffer the next track before the current one ends, eliminating silence between tracks.",
+  "PLEX_CROSSFADE_ENABLED": "Crossfade",
+  "PLEX_CROSSFADE_ENABLED_DOC": "Fade audio between tracks instead of cutting abruptly. Can be used with or without gapless playback.",
   "PLEX_CROSSFADE_DURATION": "Crossfade Duration (seconds)",
-  "PLEX_CROSSFADE_DURATION_DOC": "Overlap audio between tracks. Set to 0 for no crossfade (pure gapless). Max 12 seconds.",
+  "PLEX_CROSSFADE_DURATION_DOC": "How many seconds to overlap audio between tracks. Between 1 and 12 seconds. Due to technical limitations, the maximum effective crossfade is probably around 2s.",
   "SAVE": "Save"
 }

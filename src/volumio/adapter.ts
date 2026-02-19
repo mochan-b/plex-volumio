@@ -75,7 +75,8 @@ export class VolumioAdapter {
   private shuffleEnabled = false;
   private pageSize = DEFAULT_PAGE_SIZE;
   private gaplessPlayback = true;
-  private crossfadeDuration = 0;
+  private crossfadeEnabled = false;
+  private crossfadeDuration = 5;
 
   private originalServicePushState: VolumioCoreCommand["servicePushState"] | null = null;
   private currentQuality: { trackType?: string; samplerate?: string; bitdepth?: string } = {};
@@ -137,13 +138,14 @@ export class VolumioAdapter {
   // ── Configure (for external config injection in tests/setup) ───────
 
   /** Set up the PlexService and connection from external config. */
-  configure(plexService: PlexService, connection: PlexConnection, options?: { shuffle?: boolean; pageSize?: number; gaplessPlayback?: boolean; crossfadeDuration?: number }): void {
+  configure(plexService: PlexService, connection: PlexConnection, options?: { shuffle?: boolean; pageSize?: number; gaplessPlayback?: boolean; crossfadeEnabled?: boolean; crossfadeDuration?: number }): void {
     this.plexService = plexService;
     this.connection = connection;
     this.shuffleEnabled = options?.shuffle ?? false;
     this.pageSize = options?.pageSize ?? DEFAULT_PAGE_SIZE;
     this.gaplessPlayback = options?.gaplessPlayback ?? true;
-    this.crossfadeDuration = options?.crossfadeDuration ?? 0;
+    this.crossfadeEnabled = options?.crossfadeEnabled ?? false;
+    this.crossfadeDuration = options?.crossfadeDuration ?? 5;
   }
 
   // ── Browse ─────────────────────────────────────────────────────────
@@ -797,8 +799,8 @@ export class VolumioAdapter {
     await mpdPlugin.sendMpdCommand("stop", []);
     await mpdPlugin.sendMpdCommand("clear", []);
 
-    // Set crossfade (0 = disabled; only applied when gapless is on)
-    const xfade = this.gaplessPlayback ? this.crossfadeDuration : 0;
+    // Set crossfade (independent of gapless playback)
+    const xfade = this.crossfadeEnabled ? this.crossfadeDuration : 0;
     await mpdPlugin.sendMpdCommand(`crossfade ${xfade}`, []);
 
     // Try load first (handles playlists/streams), fall back to addid

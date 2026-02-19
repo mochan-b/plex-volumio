@@ -27,8 +27,12 @@
     "type": "boolean",
     "value": true
   },
+  "crossfadeEnabled": {
+    "type": "boolean",
+    "value": false
+  },
   "crossfadeDuration": {
     "type": "number",
-    "value": 0
+    "value": 5
   }
 }

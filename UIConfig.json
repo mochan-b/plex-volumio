@@ -97,7 +97,7 @@
       },
       "saveButton": {
         "label": "TRANSLATE.SAVE",
-        "data": ["gaplessPlayback", "crossfadeDuration"]
+        "data": ["gaplessPlayback", "crossfadeEnabled", "crossfadeDuration"]
       },
       "content": [
         {
@@ -109,13 +109,21 @@
           "value": true
         },
         {
+          "id": "crossfadeEnabled",
+          "type": "switch",
+          "element": "switch",
+          "doc": "TRANSLATE.PLEX_CROSSFADE_ENABLED_DOC",
+          "label": "TRANSLATE.PLEX_CROSSFADE_ENABLED",
+          "value": false
+        },
+        {
           "id": "crossfadeDuration",
           "type": "number",
           "element": "input",
           "doc": "TRANSLATE.PLEX_CROSSFADE_DURATION_DOC",
           "label": "TRANSLATE.PLEX_CROSSFADE_DURATION",
-          "value": 0,
-          "visibleIf": { "field": "gaplessPlayback", "value": true }
+          "value": 5,
+          "visibleIf": { "field": "crossfadeEnabled", "value": true }
         }
       ]
     }
