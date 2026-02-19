@@ -905,6 +905,13 @@ export class VolumioAdapter {
     return this.getMpdPlugin().pause();
   }
 
+  /** Start or resume playback. */
+  play(): unknown {
+    this.logger.info("[Plex] play");
+    this.commandRouter.stateMachine.setConsumeUpdateService("mpd", true, false);
+    return this.getMpdPlugin().resume();
+  }
+
   /** Resume playback. */
   resume(): unknown {
     this.logger.info("[Plex] resume");
