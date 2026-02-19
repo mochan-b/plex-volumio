@@ -60,7 +60,7 @@
       "onSave": {
         "type": "controller",
         "endpoint": "music_service/plex",
-        "method": "saveOptions"
+        "method": "saveBrowseOptions"
       },
       "saveButton": {
         "label": "TRANSLATE.SAVE",
@@ -93,7 +93,7 @@
       "onSave": {
         "type": "controller",
         "endpoint": "music_service/plex",
-        "method": "saveOptions"
+        "method": "savePlaybackOptions"
       },
       "saveButton": {
         "label": "TRANSLATE.SAVE",

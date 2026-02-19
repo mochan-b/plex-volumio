@@ -108,14 +108,17 @@ ControllerPlex.prototype.saveConfig = function (data) {
 
   var shuffle = this.config.get('shuffle') || false;
   var pageSize = this.config.get('pageSize') || 100;
-  this._initAdapter(host, port, token, https, shuffle, pageSize);
+  var gaplessPlayback = this.config.get('gaplessPlayback') !== false;
+  var crossfadeEnabled = this.config.get('crossfadeEnabled') || false;
+  var crossfadeDuration = this.config.get('crossfadeDuration') || 5;
+  this._initAdapter(host, port, token, https, shuffle, pageSize, gaplessPlayback, crossfadeEnabled, crossfadeDuration);
 
   this.commandRouter.pushToastMessage('success', 'Plex', 'Configuration saved');
   return libQ.resolve();
 };
 
-ControllerPlex.prototype.saveOptions = function (data) {
-  this.logger.info('[Plex] saveOptions data: ' + JSON.stringify(data));
+ControllerPlex.prototype.saveBrowseOptions = function (data) {
+  this.logger.info('[Plex] saveBrowseOptions data: ' + JSON.stringify(data));
 
   var shuffle = (data.shuffle && data.shuffle.value !== undefined) ? data.shuffle.value : data.shuffle;
   shuffle = !!shuffle;
@@ -124,6 +127,26 @@ ControllerPlex.prototype.saveOptions = function (data) {
   pageSize = Number(pageSize) || 100;
   if (pageSize < 10) pageSize = 10;
   if (pageSize > 1000) pageSize = 1000;
+
+  this.config.set('shuffle', shuffle);
+  this.config.set('pageSize', pageSize);
+
+  var host = this.config.get('host') || '';
+  var port = this.config.get('port') || 32400;
+  var token = this.config.get('token') || '';
+  var https = this.config.get('https') || false;
+  var gaplessPlayback = this.config.get('gaplessPlayback') !== false;
+  var crossfadeEnabled = this.config.get('crossfadeEnabled') || false;
+  var crossfadeDuration = this.config.get('crossfadeDuration') || 5;
+
+  this._initAdapter(host, port, token, https, shuffle, pageSize, gaplessPlayback, crossfadeEnabled, crossfadeDuration);
+
+  this.commandRouter.pushToastMessage('success', 'Plex', 'Options saved');
+  return libQ.resolve();
+};
+
+ControllerPlex.prototype.savePlaybackOptions = function (data) {
+  this.logger.info('[Plex] savePlaybackOptions data: ' + JSON.stringify(data));
 
   var gaplessPlayback = (data.gaplessPlayback && data.gaplessPlayback.value !== undefined) ? data.gaplessPlayback.value : data.gaplessPlayback;
   gaplessPlayback = gaplessPlayback !== false;
@@ -136,8 +159,6 @@ ControllerPlex.prototype.saveOptions = function (data) {
   if (crossfadeDuration < 1) crossfadeDuration = 1;
   if (crossfadeDuration > 12) crossfadeDuration = 12;
 
-  this.config.set('shuffle', shuffle);
-  this.config.set('pageSize', pageSize);
   this.config.set('gaplessPlayback', gaplessPlayback);
   this.config.set('crossfadeEnabled', crossfadeEnabled);
   this.config.set('crossfadeDuration', crossfadeDuration);
@@ -146,6 +167,8 @@ ControllerPlex.prototype.saveOptions = function (data) {
   var port = this.config.get('port') || 32400;
   var token = this.config.get('token') || '';
   var https = this.config.get('https') || false;
+  var shuffle = this.config.get('shuffle') || false;
+  var pageSize = this.config.get('pageSize') || 100;
 
   this._initAdapter(host, port, token, https, shuffle, pageSize, gaplessPlayback, crossfadeEnabled, crossfadeDuration);
 
