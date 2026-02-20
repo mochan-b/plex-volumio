@@ -305,7 +305,7 @@ describe("VolumioAdapter", () => {
     it("artist URIs encode the albumsKey", async () => {
       const result = (await adapter.handleBrowseUri("plex/artists")) as NavigationPage;
       const items = result.navigation.lists[0]!.items;
-      expect(items[0]!.uri).toBe("plex/artist/__library__metadata__500__children");
+      expect(items[0]!.uri).toBe("plex/artist/%2Flibrary%2Fmetadata%2F500%2Fchildren");
     });
 
     it("shows Load more when there are more results", async () => {
@@ -381,7 +381,7 @@ describe("VolumioAdapter", () => {
 
   describe("handleBrowseUri — artist", () => {
     it("returns albums for an artist", async () => {
-      const uri = "plex/artist/__library__metadata__500__children";
+      const uri = "plex/artist/%2Flibrary%2Fmetadata%2F500%2Fchildren";
       const result = (await adapter.handleBrowseUri(uri)) as NavigationPage;
 
       expect(mockService.getArtistAlbums).toHaveBeenCalledWith(
@@ -400,7 +400,7 @@ describe("VolumioAdapter", () => {
     });
 
     it("sets prev URI to plex/artists", async () => {
-      const uri = "plex/artist/__library__metadata__500__children";
+      const uri = "plex/artist/%2Flibrary%2Fmetadata%2F500%2Fchildren";
       const result = (await adapter.handleBrowseUri(uri)) as NavigationPage;
       expect(result.navigation.prev.uri).toBe("plex/artists");
     });
@@ -427,7 +427,7 @@ describe("VolumioAdapter", () => {
     it("album URIs encode the trackListKey", async () => {
       const result = (await adapter.handleBrowseUri("plex/albums")) as NavigationPage;
       const items = result.navigation.lists[0]!.items;
-      expect(items[0]!.uri).toBe("plex/album/__library__metadata__1001__children");
+      expect(items[0]!.uri).toBe("plex/album/%2Flibrary%2Fmetadata%2F1001%2Fchildren");
     });
 
     it("shows Load more when there are more results", async () => {
@@ -456,7 +456,7 @@ describe("VolumioAdapter", () => {
 
   describe("handleBrowseUri — album", () => {
     it("returns tracks for an album", async () => {
-      const uri = "plex/album/__library__metadata__1001__children";
+      const uri = "plex/album/%2Flibrary%2Fmetadata%2F1001%2Fchildren";
       const result = (await adapter.handleBrowseUri(uri)) as NavigationPage;
 
       expect(mockService.getAlbumTracks).toHaveBeenCalledWith(
@@ -472,7 +472,7 @@ describe("VolumioAdapter", () => {
     });
 
     it("uses album title from first track as list title", async () => {
-      const uri = "plex/album/__library__metadata__1001__children";
+      const uri = "plex/album/%2Flibrary%2Fmetadata%2F1001%2Fchildren";
       const result = (await adapter.handleBrowseUri(uri)) as NavigationPage;
       expect(result.navigation.lists[0]!.title).toBe("OK Computer");
     });
@@ -489,7 +489,7 @@ describe("VolumioAdapter", () => {
       expect(items).toHaveLength(1);
       expect(items[0]!.title).toBe("Favorites");
       expect(items[0]!.type).toBe("folder");
-      expect(items[0]!.uri).toBe("plex/playlist/__playlists__5001__items");
+      expect(items[0]!.uri).toBe("plex/playlist/%2Fplaylists%2F5001%2Fitems");
     });
   });
 
@@ -497,7 +497,7 @@ describe("VolumioAdapter", () => {
 
   describe("handleBrowseUri — playlist tracks", () => {
     it("returns tracks in a playlist", async () => {
-      const uri = "plex/playlist/__playlists__5001__items";
+      const uri = "plex/playlist/%2Fplaylists%2F5001%2Fitems";
       const result = (await adapter.handleBrowseUri(uri)) as NavigationPage;
 
       expect(mockService.getPlaylistTracksPaginated).toHaveBeenCalledWith("/playlists/5001/items", 0, 100);
@@ -508,7 +508,7 @@ describe("VolumioAdapter", () => {
     });
 
     it("sets prev URI to plex/playlists", async () => {
-      const uri = "plex/playlist/__playlists__5001__items";
+      const uri = "plex/playlist/%2Fplaylists%2F5001%2Fitems";
       const result = (await adapter.handleBrowseUri(uri)) as NavigationPage;
       expect(result.navigation.prev.uri).toBe("plex/playlists");
     });
@@ -520,26 +520,26 @@ describe("VolumioAdapter", () => {
         offset: 0,
       });
 
-      const uri = "plex/playlist/__playlists__5001__items";
+      const uri = "plex/playlist/%2Fplaylists%2F5001%2Fitems";
       const result = (await adapter.handleBrowseUri(uri)) as NavigationPage;
       const lastList = result.navigation.lists[result.navigation.lists.length - 1]!;
       const lastItem = lastList.items[lastList.items.length - 1]!;
       expect(lastItem.title).toBe("Load more...");
-      expect(lastItem.uri).toBe("plex/playlist/__playlists__5001__items@2");
+      expect(lastItem.uri).toBe("plex/playlist/%2Fplaylists%2F5001%2Fitems@2");
     });
 
     it("fetches with correct offset from paginated URI", async () => {
-      const uri = "plex/playlist/__playlists__5001__items@50";
+      const uri = "plex/playlist/%2Fplaylists%2F5001%2Fitems@50";
       await adapter.handleBrowseUri(uri);
       expect(mockService.getPlaylistTracksPaginated).toHaveBeenCalledWith("/playlists/5001/items", 50, 100);
     });
 
     it("shows Previous page on subsequent pages", async () => {
-      const uri = "plex/playlist/__playlists__5001__items@50";
+      const uri = "plex/playlist/%2Fplaylists%2F5001%2Fitems@50";
       const result = (await adapter.handleBrowseUri(uri)) as NavigationPage;
       const items = result.navigation.lists[0]!.items;
       expect(items[0]!.title).toBe("Previous page");
-      expect(items[0]!.uri).toBe("plex/playlist/__playlists__5001__items");
+      expect(items[0]!.uri).toBe("plex/playlist/%2Fplaylists%2F5001%2Fitems");
     });
 
     it("omits Load more on last page", async () => {
@@ -549,7 +549,7 @@ describe("VolumioAdapter", () => {
         offset: 0,
       });
 
-      const uri = "plex/playlist/__playlists__5001__items";
+      const uri = "plex/playlist/%2Fplaylists%2F5001%2Fitems";
       const result = (await adapter.handleBrowseUri(uri)) as NavigationPage;
       const items = result.navigation.lists[0]!.items;
       expect(items.every((i) => i.title !== "Load more...")).toBe(true);
@@ -582,7 +582,7 @@ describe("VolumioAdapter", () => {
       expect(result[0]!.name).toBe("Airbag");
       expect(result[0]!.artist).toBe("Radiohead");
       expect(result[0]!.album).toBe("OK Computer");
-      expect(result[0]!.uri).toBe("plex/track/2001/stream/__library__parts__2001__file.flac");
+      expect(result[0]!.uri).toBe("plex/track/2001/stream/%2Flibrary%2Fparts%2F2001%2Ffile.flac");
       expect(result[0]!.uri).not.toContain("Token");
       expect(result[0]!.service).toBe("plex");
       expect(result[0]!.type).toBe("track");
@@ -594,7 +594,7 @@ describe("VolumioAdapter", () => {
 
   describe("explodeUri — album", () => {
     it("resolves all album tracks to QueueItems", async () => {
-      const uri = "plex/album/__library__metadata__1001__children";
+      const uri = "plex/album/%2Flibrary%2Fmetadata%2F1001%2Fchildren";
       const result = (await adapter.explodeUri(uri)) as QueueItem[];
 
       expect(mockService.getAlbumTracks).toHaveBeenCalledWith(
@@ -603,10 +603,10 @@ describe("VolumioAdapter", () => {
       expect(mockService.getPlayableTrack).not.toHaveBeenCalled();
       expect(result).toHaveLength(2);
       expect(result[0]!.name).toBe("Airbag");
-      expect(result[0]!.uri).toBe("plex/track/2001/stream/__library__parts__2001__file.flac");
+      expect(result[0]!.uri).toBe("plex/track/2001/stream/%2Flibrary%2Fparts%2F2001%2Ffile.flac");
       expect(result[0]!.uri).not.toContain("Token");
       expect(result[1]!.name).toBe("Paranoid Android");
-      expect(result[1]!.uri).toBe("plex/track/2002/stream/__library__parts__2002__file.flac");
+      expect(result[1]!.uri).toBe("plex/track/2002/stream/%2Flibrary%2Fparts%2F2002%2Ffile.flac");
     });
   });
 
@@ -618,11 +618,32 @@ describe("VolumioAdapter", () => {
     });
   });
 
+  // ── Explode: tracks with no media ────────────────────────────────
+
+  describe("explodeUri — missing streamKey", () => {
+    it("filters out tracks with empty streamKey in multi-track explode", async () => {
+      const tracksWithMissing: Track[] = [
+        { ...tracksFixture[0]! },
+        { ...tracksFixture[1]!, streamKey: "" },
+      ];
+      vi.mocked(mockService.getAlbumTracks).mockResolvedValue(tracksWithMissing);
+
+      const result = (await adapter.explodeUri("plex/album/%2Flibrary%2Fmetadata%2F1001%2Fchildren")) as QueueItem[];
+      expect(result).toHaveLength(1);
+      expect(result[0]!.name).toBe("Airbag");
+    });
+
+    it("rejects single-track explode when getPlayableTrack throws for missing media", async () => {
+      vi.mocked(mockService.getPlayableTrack).mockRejectedValue(new Error("Track 2001 has no playable media"));
+      await expect(adapter.explodeUri("plex/track/2001")).rejects.toThrow("has no playable media");
+    });
+  });
+
   // ── clearAddPlayTrack ────────────────────────────────────────────
 
   describe("clearAddPlayTrack", () => {
     const queueItem: QueueItem = {
-      uri: "plex/stream/__library__parts__2001__file.flac",
+      uri: "plex/stream/%2Flibrary%2Fparts%2F2001%2Ffile.flac",
       service: "plex",
       name: "Airbag",
       artist: "Radiohead",
@@ -681,6 +702,15 @@ describe("VolumioAdapter", () => {
       await adapter.clearAddPlayTrack(queueItem);
 
       expect(vi.mocked(mpdPlugin.sendMpdCommandArray)).not.toHaveBeenCalled();
+    });
+
+    it("decodes legacy __ encoded stream URIs", async () => {
+      const legacyItem: QueueItem = {
+        ...queueItem,
+        uri: "plex/stream/__library__parts__2001__file.flac",
+      };
+      await adapter.clearAddPlayTrack(legacyItem);
+      expect(vi.mocked(mpdPlugin.sendMpdCommand)).toHaveBeenCalledWith(`load "${resolvedUrl}"`, []);
     });
 
     it("sets consume update service before playing", async () => {

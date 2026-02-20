@@ -258,7 +258,7 @@ export class VolumioAdapter {
     // plex/popular/{artistId}
     if (parts[1] === "popular" && parts[2]) {
       const tracks = await service.getPopularTracks(parts[2]);
-      return tracks.map((track) => this.trackToQueueItem(service, track));
+      return tracks.filter((track) => track.streamKey).map((track) => this.trackToQueueItem(service, track));
     }
 
     // plex/shuffle-album/{trackListKey...}
@@ -266,7 +266,7 @@ export class VolumioAdapter {
       const trackListKey = decodePathSegment(parts.slice(2).join("/"));
       const tracks = await service.getAlbumTracks(trackListKey);
       shuffleArray(tracks);
-      return tracks.map((track) => this.trackToQueueItem(service, track));
+      return tracks.filter((track) => track.streamKey).map((track) => this.trackToQueueItem(service, track));
     }
 
     // plex/shuffle-playlist/{itemsKey...}
@@ -274,21 +274,21 @@ export class VolumioAdapter {
       const itemsKey = decodePathSegment(parts.slice(2).join("/"));
       const tracks = await service.getPlaylistTracks(itemsKey);
       shuffleArray(tracks);
-      return tracks.map((track) => this.trackToQueueItem(service, track));
+      return tracks.filter((track) => track.streamKey).map((track) => this.trackToQueueItem(service, track));
     }
 
     // plex/album/{trackListKey...}
     if (parts[1] === "album" && parts[2]) {
       const trackListKey = decodePathSegment(parts.slice(2).join("/"));
       const tracks = await service.getAlbumTracks(trackListKey);
-      return tracks.map((track) => this.trackToQueueItem(service, track));
+      return tracks.filter((track) => track.streamKey).map((track) => this.trackToQueueItem(service, track));
     }
 
     // plex/playlist/{itemsKey...}
     if (parts[1] === "playlist" && parts[2]) {
       const itemsKey = decodePathSegment(parts.slice(2).join("/"));
       const tracks = await service.getPlaylistTracks(itemsKey);
-      return tracks.map((track) => this.trackToQueueItem(service, track));
+      return tracks.filter((track) => track.streamKey).map((track) => this.trackToQueueItem(service, track));
     }
 
     throw new Error(`Cannot explode URI: ${uri}`);

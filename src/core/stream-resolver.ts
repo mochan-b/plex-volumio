@@ -50,11 +50,13 @@ export function buildStreamUrl(options: StreamOptions): string {
 export function buildResourceUrl(connection: PlexConnection, path: string): string {
   const { host, port, token, https: useHttps = false } = connection;
   const scheme = useHttps ? "https" : "http";
-  return `${scheme}://${host}:${port}${path}?X-Plex-Token=${encodeURIComponent(token)}`;
+  const sep = path.includes("?") ? "&" : "?";
+  return `${scheme}://${host}:${port}${path}${sep}X-Plex-Token=${encodeURIComponent(token)}`;
 }
 
 function buildDirectUrl(base: string, token: string, trackKey: string): string {
-  return `${base}${trackKey}?X-Plex-Token=${encodeURIComponent(token)}`;
+  const sep = trackKey.includes("?") ? "&" : "?";
+  return `${base}${trackKey}${sep}X-Plex-Token=${encodeURIComponent(token)}`;
 }
 
 function buildTranscodeUrl(

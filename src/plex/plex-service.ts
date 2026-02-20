@@ -161,6 +161,9 @@ export class PlexService {
       throw new Error(`Track not found: ${trackId}`);
     }
     const track = tracks[0]!;
+    if (!track.streamKey) {
+      throw new Error(`Track ${trackId} has no playable media`);
+    }
     const streamUrl = buildStreamUrl({
       ...this.connection,
       trackKey: track.streamKey,

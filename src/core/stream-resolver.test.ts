@@ -38,6 +38,16 @@ describe("buildStreamUrl — direct play", () => {
     expect(url).toContain("X-Plex-Token=token%20with%20spaces%26symbols%3Dyes");
   });
 
+  it("uses & when trackKey already has query params", () => {
+    const url = buildStreamUrl({
+      ...connection,
+      trackKey: "/library/parts/1/2/file.mp3?quality=high",
+    });
+    expect(url).toBe(
+      "http://192.168.1.100:32400/library/parts/1/2/file.mp3?quality=high&X-Plex-Token=abc123token"
+    );
+  });
+
   it("defaults to direct play when transcode is not specified", () => {
     const url = buildStreamUrl({
       ...connection,
@@ -213,5 +223,12 @@ describe("buildResourceUrl", () => {
       "/some/path"
     );
     expect(url).toContain("X-Plex-Token=a%26b%3Dc");
+  });
+
+  it("uses & when path already has query params", () => {
+    const url = buildResourceUrl(connection, "/library/metadata/1001/thumb/123?size=large");
+    expect(url).toBe(
+      "http://192.168.1.100:32400/library/metadata/1001/thumb/123?size=large&X-Plex-Token=abc123token"
+    );
   });
 });

@@ -1,12 +1,20 @@
 // ── URI encoding helpers ─────────────────────────────────────────────
 // Plex keys contain slashes (e.g. "/library/metadata/1001/children").
-// We encode them for safe embedding in our URI scheme by replacing / with __.
+// We encode them for safe embedding in our URI scheme using percent-encoding.
+//
+// Legacy: older plugin versions used __ as a slash substitute.  Plex keys
+// always begin with /, so old segments start with __ and new ones start with
+// %2F — the two formats are unambiguous and both are handled on decode.
 
 export function encodePathSegment(key: string): string {
-  return key.replace(/\//g, "__");
+  return encodeURIComponent(key);
 }
 
 export function decodePathSegment(encoded: string): string {
+  if (encoded.startsWith("%")) {
+    return decodeURIComponent(encoded);
+  }
+  // Legacy __ encoding: replace every __ back to /
   return encoded.replace(/__/g, "/");
 }
 

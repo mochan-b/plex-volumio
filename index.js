@@ -13,6 +13,7 @@ function ControllerPlex(context) {
   this.config = new vconf();
   this.adapter = null;
   this._plexLoginState = null;
+  this._started = false;
 }
 
 // ── Plex Login Helpers ───────────────────────────────────────────────
@@ -29,6 +30,7 @@ function plexTvRequest(method, path, headers, postBody) {
       path: path,
       method: method,
       headers: Object.assign(defaultHeaders, headers),
+      timeout: 10000,
     };
     var req = https.request(options, function (res) {
       var data = '';
@@ -41,6 +43,9 @@ function plexTvRequest(method, path, headers, postBody) {
           reject(new Error('Plex.tv API error: HTTP ' + res.statusCode + ' body: ' + data.slice(0, 200)));
         }
       });
+    });
+    req.on('timeout', function () {
+      req.destroy(new Error('Request to plex.tv timed out'));
     });
     req.on('error', reject);
     if (postBody) req.write(postBody);
@@ -114,6 +119,7 @@ ControllerPlex.prototype.onVolumioStart = function () {
 };
 
 ControllerPlex.prototype.onStart = function () {
+  this._started = true;
   if (this.adapter) {
     this.adapter.onStart();
   }
@@ -121,6 +127,7 @@ ControllerPlex.prototype.onStart = function () {
 };
 
 ControllerPlex.prototype.onStop = function () {
+  this._started = false;
   if (this.adapter) {
     this.adapter.onStop();
   }
@@ -593,6 +600,10 @@ ControllerPlex.prototype.applyPlexServer = function (data) {
 // ── Internal ────────────────────────────────────────────────────────
 
 ControllerPlex.prototype._initAdapter = function (host, port, token, https, shuffle, pageSize, gaplessPlayback, crossfadeEnabled, crossfadeDuration) {
+  if (this.adapter && this._started) {
+    this.adapter.onStop();
+  }
+
   var compiled = require('./dist/index.js');
   var VolumioAdapter = compiled.VolumioAdapter;
   var PlexApiClient = compiled.PlexApiClient;
@@ -610,4 +621,8 @@ ControllerPlex.prototype._initAdapter = function (host, port, token, https, shuf
     crossfadeEnabled: !!crossfadeEnabled,
     crossfadeDuration: Number(crossfadeDuration) || 5,
   });
+
+  if (this._started) {
+    this.adapter.onStart();
+  }
 };

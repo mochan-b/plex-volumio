@@ -321,6 +321,18 @@ describe("PlexService", () => {
 
       await expect(service.getPlayableTrack("9999")).rejects.toThrow("Track not found: 9999");
     });
+
+    it("throws when track has no playable media", async () => {
+      const noMediaFixture: RawTrackResponse = {
+        MediaContainer: {
+          size: 1,
+          Metadata: [{ ...singleTrackFixture.MediaContainer.Metadata![0]!, Media: [] }],
+        },
+      };
+      vi.mocked(client.getTrackMetadata).mockResolvedValue(noMediaFixture);
+
+      await expect(service.getPlayableTrack("2001")).rejects.toThrow("Track 2001 has no playable media");
+    });
   });
 
   // ── getArtworkUrl ─────────────────────────────────────────────────
