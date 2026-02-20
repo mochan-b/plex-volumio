@@ -21,5 +21,12 @@
   "PLEX_CROSSFADE_ENABLED_DOC": "Fade audio between tracks instead of cutting abruptly. Can be used with or without gapless playback.",
   "PLEX_CROSSFADE_DURATION": "Crossfade Duration (seconds)",
   "PLEX_CROSSFADE_DURATION_DOC": "How many seconds to overlap audio between tracks. Between 1 and 12 seconds. Due to technical limitations, the maximum effective crossfade is probably around 2s.",
-  "SAVE": "Save"
+  "SAVE": "Save",
+  "PLEX_LOGIN": "Login with Plex",
+  "PLEX_LOGIN_BTN": "Login with Plex",
+  "PLEX_AUTH_URL": "Auth URL",
+  "PLEX_AUTH_URL_DOC": "Open this URL in a browser on any device and sign in with your Plex account. After signing in, Plex will show \"You may now close this window\" — this is normal. Return here and click Check Login Status.",
+  "PLEX_CHECK_LOGIN": "Check Login Status",
+  "PLEX_SERVER_SELECT": "Select Server",
+  "PLEX_APPLY_SERVER": "Apply Server"
 }

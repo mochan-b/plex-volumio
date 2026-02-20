@@ -4,6 +4,64 @@
   },
   "sections": [
     {
+      "id": "plex_login",
+      "element": "section",
+      "label": "TRANSLATE.PLEX_LOGIN",
+      "icon": "fa-sign-in",
+      "onSave": {
+        "type": "controller",
+        "endpoint": "music_service/plex",
+        "method": "applyPlexServer"
+      },
+      "saveButton": {
+        "label": "TRANSLATE.PLEX_APPLY_SERVER",
+        "data": ["plexServer"]
+      },
+      "content": [
+        {
+          "id": "plex_login_btn",
+          "element": "button",
+          "label": "TRANSLATE.PLEX_LOGIN_BTN",
+          "onClick": {
+            "type": "emit",
+            "message": "callMethod",
+            "data": {
+              "endpoint": "music_service/plex",
+              "method": "startPlexLogin"
+            }
+          }
+        },
+        {
+          "id": "plexAuthUrl",
+          "type": "text",
+          "element": "input",
+          "doc": "TRANSLATE.PLEX_AUTH_URL_DOC",
+          "label": "TRANSLATE.PLEX_AUTH_URL",
+          "value": ""
+        },
+        {
+          "id": "plex_check_btn",
+          "element": "button",
+          "label": "TRANSLATE.PLEX_CHECK_LOGIN",
+          "onClick": {
+            "type": "emit",
+            "message": "callMethod",
+            "data": {
+              "endpoint": "music_service/plex",
+              "method": "checkPlexLogin"
+            }
+          }
+        },
+        {
+          "id": "plexServer",
+          "element": "select",
+          "label": "TRANSLATE.PLEX_SERVER_SELECT",
+          "value": { "value": "", "label": "" },
+          "options": []
+        }
+      ]
+    },
+    {
       "id": "plex_connection",
       "element": "section",
       "label": "TRANSLATE.PLEX_CONNECTION",

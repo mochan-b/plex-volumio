@@ -34,5 +34,9 @@
   "crossfadeDuration": {
     "type": "number",
     "value": 5
+  },
+  "clientId": {
+    "type": "string",
+    "value": ""
   }
 }
