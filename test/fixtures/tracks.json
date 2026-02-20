@@ -7,7 +7,9 @@
         "key": "/library/metadata/2001",
         "title": "Airbag",
         "grandparentTitle": "Radiohead",
+        "grandparentKey": "/library/metadata/1000/children",
         "parentTitle": "OK Computer",
+        "parentKey": "/library/metadata/1001/children",
         "duration": 282000,
         "thumb": "/library/metadata/1001/thumb/1609459200",
         "Media": [
@@ -39,7 +41,9 @@
         "key": "/library/metadata/2002",
         "title": "Paranoid Android",
         "grandparentTitle": "Radiohead",
+        "grandparentKey": "/library/metadata/1000/children",
         "parentTitle": "OK Computer",
+        "parentKey": "/library/metadata/1001/children",
         "duration": 383000,
         "Media": [
           {
@@ -68,7 +72,9 @@
         "key": "/library/metadata/2003",
         "title": "Subterranean Homesick Alien",
         "grandparentTitle": "Radiohead",
+        "grandparentKey": "/library/metadata/1000/children",
         "parentTitle": "OK Computer",
+        "parentKey": "/library/metadata/1001/children",
         "duration": 265000,
         "thumb": "/library/metadata/1001/thumb/1609459200",
         "Media": [

@@ -6,10 +6,10 @@ import type {
   RawTrackResponse,
   RawPlaylistResponse,
 } from "../types/index.js";
-import librariesFixture from "../../test/fixtures/libraries.json" with { type: "json" };
-import albumsFixture from "../../test/fixtures/albums.json" with { type: "json" };
-import tracksFixture from "../../test/fixtures/tracks.json" with { type: "json" };
-import playlistsFixture from "../../test/fixtures/playlists.json" with { type: "json" };
+import librariesFixture from "../../test/fixtures/libraries.json";
+import albumsFixture from "../../test/fixtures/albums.json";
+import tracksFixture from "../../test/fixtures/tracks.json";
+import playlistsFixture from "../../test/fixtures/playlists.json";
 
 // ── parseLibraries ───────────────────────────────────────────────────
 
@@ -204,7 +204,9 @@ describe("parseTracks", () => {
             key: "/library/metadata/9999",
             title: "Bad Track",
             grandparentTitle: "Unknown",
+            grandparentKey: "/library/metadata/9000/children",
             parentTitle: "Unknown Album",
+            parentKey: "/library/metadata/9998/children",
             duration: 100000,
             Media: [],
           },

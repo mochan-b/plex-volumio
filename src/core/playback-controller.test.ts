@@ -13,6 +13,9 @@ function makeTrack(id: string, title = `Track ${id}`): Track {
     duration: 200_000,
     artworkUrl: null,
     streamKey: `/library/parts/${id}/12345/file.flac`,
+    trackType: null,
+    samplerate: null,
+    bitdepth: null,
   };
 }
 

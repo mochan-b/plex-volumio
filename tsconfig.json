@@ -34,6 +34,7 @@
     // "noPropertyAccessFromIndexSignature": true,
 
     // Recommended Options
+    "esModuleInterop": true,
     "strict": true,
     "jsx": "react-jsx",
     "isolatedModules": true,

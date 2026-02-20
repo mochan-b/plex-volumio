@@ -157,6 +157,7 @@ function createMockMpdPlugin(): MpdPlugin {
     stop: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn().mockResolvedValue(undefined),
     resume: vi.fn().mockResolvedValue(undefined),
+    next: vi.fn().mockResolvedValue(undefined),
     seek: vi.fn().mockResolvedValue(undefined),
     clientMpd: {
       sendCommand: vi.fn(),
@@ -182,6 +183,8 @@ function createMockContext(mpdPlugin?: MpdPlugin): {
     volumioRemoveToBrowseSources: vi.fn(),
     stateMachine: {
       setConsumeUpdateService: vi.fn(),
+      previous: vi.fn().mockResolvedValue(undefined),
+      prefetchDone: false,
     },
     pluginManager: {
       getPlugin: vi.fn().mockReturnValue(mpdPlugin ?? createMockMpdPlugin()),

@@ -13,6 +13,9 @@ function makeTrack(overrides: Partial<Track> = {}): Track {
     duration: 240_000,
     artworkUrl: "/art/1.jpg",
     streamKey: "/library/parts/1/file.flac",
+    trackType: null,
+    samplerate: null,
+    bitdepth: null,
     ...overrides,
   };
 }
