@@ -13,8 +13,6 @@ import type {
   MpdPlugin,
   MpdCommandEntry,
   NavigationPage,
-  NavigationList,
-  NavigationListItem,
   QueueItem,
   SearchQuery,
   SearchResultSection,
@@ -25,30 +23,29 @@ import { PlexApiClient } from "../plex/api-client.js";
 import { PlexService } from "../plex/plex-service.js";
 import type { PlexConnection } from "../core/stream-resolver.js";
 import type { Track } from "../types/index.js";
+import {
+  encodePathSegment,
+  decodePathSegment,
+  shuffleArray,
+  parsePaginationUri,
+} from "./uri-utils.js";
+import {
+  browseRoot,
+  browseArtists,
+  browseArtist,
+  browsePopularTracks,
+  browseAlbums,
+  browseAlbum,
+  browsePlaylists,
+  browsePlaylist,
+  browseShuffleAlbum,
+  browseShufflePlaylist,
+  trackToNavItem,
+} from "./browse-handlers.js";
+import type { BrowseOptions } from "./browse-handlers.js";
 
 const SERVICE_NAME = "plex";
 const DEFAULT_PAGE_SIZE = 100;
-
-interface PaginationState {
-  libraryKey: string | null;
-  offset: number;
-}
-
-function parsePaginationUri(uri: string): PaginationState {
-  const atIndex = uri.indexOf("@");
-  if (atIndex === -1) {
-    return { libraryKey: null, offset: 0 };
-  }
-  const paginationPart = uri.slice(atIndex + 1);
-  const colonIndex = paginationPart.indexOf(":");
-  if (colonIndex === -1) {
-    return { libraryKey: paginationPart, offset: 0 };
-  }
-  return {
-    libraryKey: paginationPart.slice(0, colonIndex),
-    offset: parseInt(paginationPart.slice(colonIndex + 1), 10) || 0,
-  };
-}
 
 /** Minimal interface for kew-compatible promise library (Volumio's libQ). */
 export interface KewLib {
@@ -174,54 +171,55 @@ export class VolumioAdapter {
   private async _handleBrowseUri(uri: string): Promise<NavigationPage> {
     const service = this.requireService();
     const parts = uri.split("/");
+    const options: BrowseOptions = { pageSize: this.pageSize, shuffleEnabled: this.shuffleEnabled };
 
     // plex
     if (uri === "plex") {
-      return this.browseRoot();
+      return browseRoot();
     }
 
     // plex/artists or plex/artists@{libKey}:{offset}
     if (uri === "plex/artists" || uri.startsWith("plex/artists@")) {
-      return this.browseArtists(service, parsePaginationUri(uri));
+      return browseArtists(service, parsePaginationUri(uri), options);
     }
 
     // plex/albums or plex/albums@{libKey}:{offset}
     if (uri === "plex/albums" || uri.startsWith("plex/albums@")) {
-      return this.browseAlbums(service, parsePaginationUri(uri));
+      return browseAlbums(service, parsePaginationUri(uri), options);
     }
 
     // plex/playlists
     if (uri === "plex/playlists") {
-      return this.browsePlaylists(service);
+      return browsePlaylists(service);
     }
 
     // plex/artist/{albumsKey...}  (key may contain slashes, encoded as __)
     if (parts[1] === "artist" && parts[2]) {
       const albumsKey = decodePathSegment(parts.slice(2).join("/"));
-      return this.browseArtist(service, albumsKey);
+      return browseArtist(service, albumsKey);
     }
 
     // plex/popular/{artistId}
     if (parts[1] === "popular" && parts[2]) {
-      return this.browsePopularTracks(service, parts[2]);
+      return browsePopularTracks(service, parts[2]);
     }
 
     // plex/shuffle-album/{trackListKey...}
     if (parts[1] === "shuffle-album" && parts[2]) {
       const trackListKey = decodePathSegment(parts.slice(2).join("/"));
-      return this.browseShuffleAlbum(service, trackListKey);
+      return browseShuffleAlbum(service, trackListKey);
     }
 
     // plex/shuffle-playlist/{itemsKey...}
     if (parts[1] === "shuffle-playlist" && parts[2]) {
       const itemsKey = decodePathSegment(parts.slice(2).join("/"));
-      return this.browseShufflePlaylist(service, itemsKey);
+      return browseShufflePlaylist(service, itemsKey);
     }
 
     // plex/album/{trackListKey...}  (key may contain slashes, encoded as __)
     if (parts[1] === "album" && parts[2]) {
       const trackListKey = decodePathSegment(parts.slice(2).join("/"));
-      return this.browseAlbum(service, trackListKey);
+      return browseAlbum(service, trackListKey, options);
     }
 
     // plex/playlist/{itemsKey...} or plex/playlist/{itemsKey...}@{offset}
@@ -229,449 +227,14 @@ export class VolumioAdapter {
       const raw = parts.slice(2).join("/");
       const atIndex = raw.indexOf("@");
       if (atIndex === -1) {
-        return this.browsePlaylist(service, decodePathSegment(raw), 0);
+        return browsePlaylist(service, decodePathSegment(raw), 0, options);
       }
       const itemsKey = decodePathSegment(raw.slice(0, atIndex));
       const offset = parseInt(raw.slice(atIndex + 1), 10) || 0;
-      return this.browsePlaylist(service, itemsKey, offset);
+      return browsePlaylist(service, itemsKey, offset, options);
     }
 
     throw new Error(`Unknown browse URI: ${uri}`);
-  }
-
-  private browseRoot(): NavigationPage {
-    const items: NavigationListItem[] = [
-      {
-        service: SERVICE_NAME,
-        type: "folder",
-        title: "Artists",
-        uri: "plex/artists",
-        icon: "fa fa-microphone",
-      },
-      {
-        service: SERVICE_NAME,
-        type: "folder",
-        title: "Albums",
-        uri: "plex/albums",
-        icon: "fa fa-music",
-      },
-      {
-        service: SERVICE_NAME,
-        type: "folder",
-        title: "Playlists",
-        uri: "plex/playlists",
-        icon: "fa fa-list",
-      },
-    ];
-
-    return {
-      navigation: {
-        prev: { uri: "/" },
-        lists: [
-          {
-            title: "Plex Music",
-            icon: "fa fa-server",
-            availableListViews: ["list", "grid"],
-            items,
-          },
-        ],
-      },
-    };
-  }
-
-  private async browseArtists(service: PlexService, pagination: PaginationState): Promise<NavigationPage> {
-    const libraries = await service.getLibraries();
-    let libraryKey = pagination.libraryKey;
-    if (libraryKey === null) {
-      libraryKey = libraries[0]?.id ?? null;
-      if (!libraryKey) {
-        return { navigation: { prev: { uri: "plex" }, lists: [{ title: "Artists", icon: "fa fa-microphone", availableListViews: ["list", "grid"], items: [] }] } };
-      }
-    }
-
-    const result = await service.getArtistsPaginated(libraryKey, pagination.offset, this.pageSize);
-
-    const items: NavigationListItem[] = [];
-
-    if (pagination.offset > 0) {
-      const prevOffset = Math.max(0, pagination.offset - this.pageSize);
-      const prevUri = prevOffset === 0
-        ? "plex/artists"
-        : `plex/artists@${libraryKey}:${prevOffset}`;
-      items.push({
-        service: SERVICE_NAME,
-        type: "item",
-        title: "Previous page",
-        uri: prevUri,
-        icon: "fa fa-arrow-circle-up",
-      });
-    }
-
-    items.push(...result.items.map((artist) => ({
-      service: SERVICE_NAME,
-      type: "folder" as const,
-      title: artist.title,
-      ...(artist.artworkUrl ? { albumart: service.getArtworkUrl(artist.artworkUrl) } : {}),
-      uri: `plex/artist/${encodePathSegment(artist.albumsKey)}`,
-    })));
-
-    const nextOffset = pagination.offset + result.items.length;
-    if (nextOffset < result.totalSize) {
-      items.push({
-        service: SERVICE_NAME,
-        type: "item",
-        title: "Load more...",
-        uri: `plex/artists@${libraryKey}:${nextOffset}`,
-        icon: "fa fa-arrow-circle-down",
-      });
-    } else {
-      const currentLibIndex = libraries.findIndex((l) => l.id === libraryKey);
-      const nextLib = libraries[currentLibIndex + 1];
-      if (nextLib) {
-        items.push({
-          service: SERVICE_NAME,
-          type: "item",
-          title: "Load more...",
-          uri: `plex/artists@${nextLib.id}:0`,
-          icon: "fa fa-arrow-circle-down",
-        });
-      }
-    }
-
-    return {
-      navigation: {
-        prev: { uri: "plex" },
-        lists: [
-          {
-            title: "Artists",
-            icon: "fa fa-microphone",
-            availableListViews: ["list", "grid"],
-            items,
-          },
-        ],
-      },
-    };
-  }
-
-  private async browseArtist(service: PlexService, albumsKey: string): Promise<NavigationPage> {
-    const albums = await service.getArtistAlbums(albumsKey);
-
-    // Extract artist ratingKey from albumsKey (e.g. "/library/metadata/123/children" → "123")
-    const artistId = albumsKey.split("/").slice(-2, -1)[0];
-
-    const items: NavigationListItem[] = albums.map((album) => ({
-      service: SERVICE_NAME,
-      type: "folder" as const,
-      title: album.title,
-      artist: album.artist,
-      ...(album.artworkUrl ? { albumart: service.getArtworkUrl(album.artworkUrl) } : {}),
-      uri: `plex/album/${encodePathSegment(album.trackListKey)}`,
-    }));
-
-    // Add "Popular Tracks" folder after the albums
-    if (artistId) {
-      items.push({
-        service: SERVICE_NAME,
-        type: "folder",
-        title: "Popular Tracks",
-        uri: `plex/popular/${artistId}`,
-        icon: "fa fa-fire",
-      });
-    }
-
-    return {
-      navigation: {
-        prev: { uri: "plex/artists" },
-        lists: [
-          {
-            title: albums[0]?.artist ?? "Artist",
-            availableListViews: ["list", "grid"],
-            items,
-          },
-        ],
-      },
-    };
-  }
-
-  private async browsePopularTracks(service: PlexService, artistId: string): Promise<NavigationPage> {
-    const tracks = await service.getPopularTracks(artistId);
-
-    const items: NavigationListItem[] = tracks.map((track) =>
-      this.trackToNavItem(service, track),
-    );
-
-    return {
-      navigation: {
-        prev: { uri: `plex/artist/${encodePathSegment(`/library/metadata/${artistId}/children`)}` },
-        lists: [
-          {
-            title: "Popular Tracks",
-            icon: "fa fa-fire",
-            availableListViews: ["list"],
-            items,
-          },
-        ],
-      },
-    };
-  }
-
-  private async browseAlbums(service: PlexService, pagination: PaginationState): Promise<NavigationPage> {
-    const libraries = await service.getLibraries();
-    let libraryKey = pagination.libraryKey;
-    if (libraryKey === null) {
-      libraryKey = libraries[0]?.id ?? null;
-      if (!libraryKey) {
-        return { navigation: { prev: { uri: "plex" }, lists: [{ title: "Albums", availableListViews: ["list", "grid"], items: [] }] } };
-      }
-    }
-
-    const result = await service.getAlbumsPaginated(libraryKey, pagination.offset, this.pageSize);
-
-    const items: NavigationListItem[] = [];
-
-    if (pagination.offset > 0) {
-      const prevOffset = Math.max(0, pagination.offset - this.pageSize);
-      const prevUri = prevOffset === 0
-        ? "plex/albums"
-        : `plex/albums@${libraryKey}:${prevOffset}`;
-      items.push({
-        service: SERVICE_NAME,
-        type: "item",
-        title: "Previous page",
-        uri: prevUri,
-        icon: "fa fa-arrow-circle-up",
-      });
-    }
-
-    items.push(...result.items.map((album) => ({
-      service: SERVICE_NAME,
-      type: "folder" as const,
-      title: album.title,
-      artist: album.artist,
-      ...(album.artworkUrl ? { albumart: service.getArtworkUrl(album.artworkUrl) } : {}),
-      uri: `plex/album/${encodePathSegment(album.trackListKey)}`,
-    })));
-
-    const nextOffset = pagination.offset + result.items.length;
-    if (nextOffset < result.totalSize) {
-      items.push({
-        service: SERVICE_NAME,
-        type: "item",
-        title: "Load more...",
-        uri: `plex/albums@${libraryKey}:${nextOffset}`,
-        icon: "fa fa-arrow-circle-down",
-      });
-    } else {
-      const currentLibIndex = libraries.findIndex((l) => l.id === libraryKey);
-      const nextLib = libraries[currentLibIndex + 1];
-      if (nextLib) {
-        items.push({
-          service: SERVICE_NAME,
-          type: "item",
-          title: "Load more...",
-          uri: `plex/albums@${nextLib.id}:0`,
-          icon: "fa fa-arrow-circle-down",
-        });
-      }
-    }
-
-    return {
-      navigation: {
-        prev: { uri: "plex" },
-        lists: [
-          {
-            title: "Albums",
-            availableListViews: ["list", "grid"],
-            items,
-          },
-        ],
-      },
-    };
-  }
-
-  private async browseAlbum(service: PlexService, trackListKey: string): Promise<NavigationPage> {
-    const tracks = await service.getAlbumTracks(trackListKey);
-
-    const lists: NavigationList[] = [];
-
-    if (this.shuffleEnabled) {
-      lists.push({
-        availableListViews: ["list"],
-        items: [{
-          service: SERVICE_NAME,
-          type: "folder",
-          title: "Shuffle",
-          uri: `plex/shuffle-album/${encodePathSegment(trackListKey)}`,
-          icon: "fa fa-random",
-        }],
-      });
-    }
-
-    lists.push({
-      title: tracks[0]?.album ?? "Album",
-      availableListViews: ["list"],
-      items: tracks.map((track) => this.trackToNavItem(service, track)),
-    });
-
-    return {
-      navigation: {
-        prev: { uri: "plex/albums" },
-        lists,
-      },
-    };
-  }
-
-  private async browsePlaylists(service: PlexService): Promise<NavigationPage> {
-    const playlists = await service.getPlaylists();
-
-    const items: NavigationListItem[] = playlists.map((pl) => ({
-      service: SERVICE_NAME,
-      type: "folder",
-      title: pl.title,
-      uri: `plex/playlist/${encodePathSegment(pl.itemsKey)}`,
-      icon: "fa fa-list",
-    }));
-
-    return {
-      navigation: {
-        prev: { uri: "plex" },
-        lists: [
-          {
-            title: "Playlists",
-            icon: "fa fa-list",
-            availableListViews: ["list"],
-            items,
-          },
-        ],
-      },
-    };
-  }
-
-  private async browsePlaylist(service: PlexService, itemsKey: string, offset: number): Promise<NavigationPage> {
-    const result = await service.getPlaylistTracksPaginated(itemsKey, offset, this.pageSize);
-
-    const lists: NavigationList[] = [];
-
-    // Navigation items (previous page, shuffle) in their own list
-    const navItems: NavigationListItem[] = [];
-
-    if (offset > 0) {
-      const prevOffset = Math.max(0, offset - this.pageSize);
-      const prevUri = prevOffset === 0
-        ? `plex/playlist/${encodePathSegment(itemsKey)}`
-        : `plex/playlist/${encodePathSegment(itemsKey)}@${prevOffset}`;
-      navItems.push({
-        service: SERVICE_NAME,
-        type: "item",
-        title: "Previous page",
-        uri: prevUri,
-        icon: "fa fa-arrow-circle-up",
-      });
-    }
-
-    if (this.shuffleEnabled && offset === 0) {
-      navItems.push({
-        service: SERVICE_NAME,
-        type: "folder",
-        title: "Shuffle",
-        uri: `plex/shuffle-playlist/${encodePathSegment(itemsKey)}`,
-        icon: "fa fa-random",
-      });
-    }
-
-    if (navItems.length > 0) {
-      lists.push({
-        availableListViews: ["list"],
-        items: navItems,
-      });
-    }
-
-    // Tracks in their own list
-    lists.push({
-      title: "Playlist",
-      availableListViews: ["list"],
-      items: result.items.map((track) => this.trackToNavItem(service, track)),
-    });
-
-    const nextOffset = offset + result.items.length;
-    if (nextOffset < result.totalSize) {
-      lists.push({
-        availableListViews: ["list"],
-        items: [{
-          service: SERVICE_NAME,
-          type: "item",
-          title: "Load more...",
-          uri: `plex/playlist/${encodePathSegment(itemsKey)}@${nextOffset}`,
-          icon: "fa fa-arrow-circle-down",
-        }],
-      });
-    }
-
-    return {
-      navigation: {
-        prev: { uri: "plex/playlists" },
-        lists,
-      },
-    };
-  }
-
-  private async browseShuffleAlbum(service: PlexService, trackListKey: string): Promise<NavigationPage> {
-    const tracks = await service.getAlbumTracks(trackListKey);
-    shuffleArray(tracks);
-
-    const items: NavigationListItem[] = tracks.map((track) =>
-      this.trackToNavItem(service, track),
-    );
-
-    return {
-      navigation: {
-        prev: { uri: `plex/album/${encodePathSegment(trackListKey)}` },
-        lists: [
-          {
-            title: "Shuffle",
-            icon: "fa fa-random",
-            availableListViews: ["list"],
-            items,
-          },
-        ],
-      },
-    };
-  }
-
-  private async browseShufflePlaylist(service: PlexService, itemsKey: string): Promise<NavigationPage> {
-    const tracks = await service.getPlaylistTracks(itemsKey);
-    shuffleArray(tracks);
-
-    const items: NavigationListItem[] = tracks.map((track) =>
-      this.trackToNavItem(service, track),
-    );
-
-    return {
-      navigation: {
-        prev: { uri: `plex/playlist/${encodePathSegment(itemsKey)}` },
-        lists: [
-          {
-            title: "Shuffle",
-            icon: "fa fa-random",
-            availableListViews: ["list"],
-            items,
-          },
-        ],
-      },
-    };
-  }
-
-  private trackToNavItem(service: PlexService, track: Track): NavigationListItem {
-    return {
-      service: SERVICE_NAME,
-      type: "song",
-      title: track.title,
-      artist: track.artist,
-      album: track.album,
-      ...(track.artworkUrl ? { albumart: service.getArtworkUrl(track.artworkUrl) } : {}),
-      uri: `plex/track/${track.id}`,
-      duration: Math.round(track.duration / 1000),
-    };
   }
 
   // ── Explode (resolve URI to queue items) ───────────────────────────
@@ -957,7 +520,7 @@ export class VolumioAdapter {
       sections.push({
         title: "Plex Tracks",
         availableListViews: ["list"],
-        items: results.tracks.map((track) => this.trackToNavItem(service, track)),
+        items: results.tracks.map((track) => trackToNavItem(service, track)),
       });
     }
 
@@ -1045,22 +608,3 @@ export class VolumioAdapter {
   }
 }
 
-// ── URI encoding helpers ─────────────────────────────────────────────
-// Plex keys contain slashes (e.g. "/library/metadata/1001/children").
-// We encode them for safe embedding in our URI scheme by replacing / with __.
-
-function encodePathSegment(key: string): string {
-  return key.replace(/\//g, "__");
-}
-
-function decodePathSegment(encoded: string): string {
-  return encoded.replace(/__/g, "/");
-}
-
-/** Fisher-Yates in-place shuffle. */
-function shuffleArray<T>(array: T[]): void {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j]!, array[i]!];
-  }
-}
