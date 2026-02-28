@@ -5,6 +5,7 @@
 
 import type {
   NavigationPage,
+  NavigationInfo,
   NavigationList,
   NavigationListItem,
 } from "./types.js";
@@ -360,9 +361,22 @@ export async function browseAlbum(
     items: tracks.map((track) => trackToNavItem(service, track)),
   });
 
+  const firstTrack = tracks[0];
+  const info: NavigationInfo | undefined = firstTrack
+    ? {
+        service: SERVICE_NAME,
+        type: "song",
+        uri: `plex/album/${encodePathSegment(trackListKey)}`,
+        albumart: firstTrack.artworkUrl ? service.getArtworkUrl(firstTrack.artworkUrl) : "",
+        album: firstTrack.album,
+        artist: firstTrack.artist,
+      }
+    : undefined;
+
   return {
     navigation: {
       prev: { uri: "plex/albums" },
+      ...(info && { info }),
       lists,
     },
   };
@@ -459,9 +473,21 @@ export async function browsePlaylist(
     });
   }
 
+  const firstTrack = result.items[0];
+  const info: NavigationInfo | undefined = firstTrack
+    ? {
+        service: SERVICE_NAME,
+        type: "song",
+        uri: `plex/playlist/${encodePathSegment(itemsKey)}`,
+        albumart: firstTrack.artworkUrl ? service.getArtworkUrl(firstTrack.artworkUrl) : "",
+        artist: firstTrack.artist,
+      }
+    : undefined;
+
   return {
     navigation: {
       prev: { uri: "plex/playlists" },
+      ...(info && { info }),
       lists,
     },
   };
@@ -475,9 +501,22 @@ export async function browseShuffleAlbum(service: PlexService, trackListKey: str
     trackToNavItem(service, track),
   );
 
+  const firstTrack = tracks[0];
+  const info: NavigationInfo | undefined = firstTrack
+    ? {
+        service: SERVICE_NAME,
+        type: "song",
+        uri: `plex/shuffle-album/${encodePathSegment(trackListKey)}`,
+        albumart: firstTrack.artworkUrl ? service.getArtworkUrl(firstTrack.artworkUrl) : "",
+        album: firstTrack.album,
+        artist: firstTrack.artist,
+      }
+    : undefined;
+
   return {
     navigation: {
       prev: { uri: `plex/album/${encodePathSegment(trackListKey)}` },
+      ...(info && { info }),
       lists: [
         {
           title: "Shuffle",
@@ -498,9 +537,21 @@ export async function browseShufflePlaylist(service: PlexService, itemsKey: stri
     trackToNavItem(service, track),
   );
 
+  const firstTrack = tracks[0];
+  const info: NavigationInfo | undefined = firstTrack
+    ? {
+        service: SERVICE_NAME,
+        type: "song",
+        uri: `plex/shuffle-playlist/${encodePathSegment(itemsKey)}`,
+        albumart: firstTrack.artworkUrl ? service.getArtworkUrl(firstTrack.artworkUrl) : "",
+        artist: firstTrack.artist,
+      }
+    : undefined;
+
   return {
     navigation: {
       prev: { uri: `plex/playlist/${encodePathSegment(itemsKey)}` },
+      ...(info && { info }),
       lists: [
         {
           title: "Shuffle",
