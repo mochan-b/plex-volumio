@@ -88,22 +88,24 @@ export class PlexApiClient {
   }
 
   /** Fetch artists for a library section (type=8 requests artist-level items). */
-  async getArtists(libraryKey: string, pagination?: PaginationParams): Promise<RawArtistResponse> {
+  async getArtists(libraryKey: string, pagination?: PaginationParams, sort?: string): Promise<RawArtistResponse> {
     const paginationQuery = pagination
       ? `&X-Plex-Container-Start=${pagination.offset}&X-Plex-Container-Size=${pagination.limit}`
       : "";
+    const sortQuery = sort ? `&sort=${encodeURIComponent(sort)}` : "";
     return this.request<RawArtistResponse>(
-      `/library/sections/${encodeURIComponent(libraryKey)}/all?type=8${paginationQuery}`,
+      `/library/sections/${encodeURIComponent(libraryKey)}/all?type=8${paginationQuery}${sortQuery}`,
     );
   }
 
   /** Fetch albums for a library section (type=9 requests album-level items). */
-  async getAlbums(libraryKey: string, pagination?: PaginationParams): Promise<RawAlbumResponse> {
+  async getAlbums(libraryKey: string, pagination?: PaginationParams, sort?: string): Promise<RawAlbumResponse> {
     const paginationQuery = pagination
       ? `&X-Plex-Container-Start=${pagination.offset}&X-Plex-Container-Size=${pagination.limit}`
       : "";
+    const sortQuery = sort ? `&sort=${encodeURIComponent(sort)}` : "";
     return this.request<RawAlbumResponse>(
-      `/library/sections/${encodeURIComponent(libraryKey)}/all?type=9${paginationQuery}`,
+      `/library/sections/${encodeURIComponent(libraryKey)}/all?type=9${paginationQuery}${sortQuery}`,
     );
   }
 

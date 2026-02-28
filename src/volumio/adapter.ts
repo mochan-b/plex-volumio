@@ -178,13 +178,13 @@ export class VolumioAdapter {
       return browseRoot();
     }
 
-    // plex/artists or plex/artists@{libKey}:{offset}
-    if (uri === "plex/artists" || uri.startsWith("plex/artists@")) {
+    // plex/artists, plex/artists@{libKey}:{offset}, plex/artists~{sort}, plex/artists~{sort}@{libKey}:{offset}
+    if (uri === "plex/artists" || uri.startsWith("plex/artists@") || uri.startsWith("plex/artists~")) {
       return browseArtists(service, parsePaginationUri(uri), options);
     }
 
-    // plex/albums or plex/albums@{libKey}:{offset}
-    if (uri === "plex/albums" || uri.startsWith("plex/albums@")) {
+    // plex/albums, plex/albums@{libKey}:{offset}, plex/albums~{sort}, plex/albums~{sort}@{libKey}:{offset}
+    if (uri === "plex/albums" || uri.startsWith("plex/albums@") || uri.startsWith("plex/albums~")) {
       return browseAlbums(service, parsePaginationUri(uri), options);
     }
 
