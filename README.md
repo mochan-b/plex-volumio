@@ -143,7 +143,4 @@ sudo systemctl restart volumio
 
 - Added shuffle function that mimics the behavior of Plex's shuffle (Fisher-Yates algorithm) but is added as an entry inside playlists and albums. It can turned off inside the plugin settings.
 - Added crossfade option but it is not strongly supported by Volumio and might not behave as expected. The plugin will attempt to overlap tracks by the specified duration, but due to technical limitations, the maximum effective crossfade is probably around 2 seconds. Perhaps future versions of Volumio will have better support for crossfading.
-
-### Does Not Support
-
-- Reporting back to Plex is not supported and so track counts, play history, scrobbling from Plex side will not show up. Most of the features are not transparent in the server and tools to debug if these are reporting corectly is not easy to do for now.
+- Supports reporting back to the server when tracks are played. It should show up in the Plex dashboard. It will update play counts, last played and scrobbling if that is set up. To enable this, go to the Plex plugin settings and turn on "Send Playback Data to Plex" in settings.
